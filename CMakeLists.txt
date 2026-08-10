@@ -30,7 +30,7 @@ set(CONTENT_SIMULATION "client" CACHE STRING "Simulation topology: client or ser
 
 set_property(CACHE CONTENT_SIMULATION PROPERTY STRINGS client server_client)
 
-set(CONTENT_TICKS_PER_SECOND "30" CACHE STRING "Fixed simulation ticks per second")
+set(CONTENT_TICKS_PER_SECOND "60" CACHE STRING "Fixed simulation ticks per second")
 
 set(CONTENT_PROJECT_NAME "touhou game" CACHE STRING "Project name shown in the host window")
 set(MSDF_ATLAS_GEN "" CACHE FILEPATH "Path to msdf-atlas-gen")

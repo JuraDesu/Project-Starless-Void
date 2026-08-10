@@ -36,7 +36,7 @@ $c c_inst_hit_budget {
 };
 
 $c c_inst_source {
-    float speed = 5.0f;
+    float speed = 2.5f;
     float lifetime = 2.0f;
     entity_id owner = 0;
 };
@@ -216,7 +216,7 @@ $c e_update[200](
         }
         entity target = world.from_stable_id(contact.stable_id);
         if (target)
-            e.set_pair<c_projectile_recent_hit>(target, {tick + 1u});
+            e.set_pair<c_projectile_recent_hit>(target, {tick + 3u});
         ++processed;
         if (hit.consume_hit) --budget.remaining;
         destroy = hit.destroy_projectile || budget.remaining <= 0;

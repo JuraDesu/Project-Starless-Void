@@ -60,11 +60,12 @@ $c e_update[-500](
 
         float difference = angle_difference(current_angle, target_angle);
 
-        float maximum_rotation_speed = (1.0f / (1.0f + current_speed)) * 2.5f;
+        float maximum_rotation_speed = 1.25f
+            / (1.0f + current_speed * 2.0f);
 
         float next_angle = current_angle + clamp(difference, -maximum_rotation_speed, maximum_rotation_speed);//todo remove "std::"
 
-        float speed_increment = (abs(difference) / PI - 0.5f) * -1.5f;
+        float speed_increment = (abs(difference) / PI - 0.5f) * -0.75f;
 
         float next_speed = current_speed + speed_increment;
 

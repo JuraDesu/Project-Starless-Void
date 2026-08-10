@@ -37,7 +37,7 @@ inline void emit_aura_particles(
         float dt_seconds,
         uint64_t stable_id) {
     emitter.carry += scale_particle_spawn_budget(
-        360.0f * (dt_seconds / max(g_particle_tick_seconds, 0.000001f)));
+        180.0f * (dt_seconds / max(g_particle_tick_seconds, 0.000001f)));
     const uint32_t count = static_cast<uint32_t>(
         std::floor(max(emitter.carry, 0.0f)));
     emitter.carry -= static_cast<float>(count);
@@ -97,12 +97,15 @@ $cr c_item_aura : c_item {
 $c e_update[-500](
     const c_inst& inst,
     const c_inst_source& source,
-    const c_inst_aura& aura,
+    c_inst_aura& aura,
     const c_rigid_body& body,
     exclude c_pending_destruction
 ) {
     (void)inst;
     const float radius = max(aura.radius, 0.0f);
+    aura.damage_phase += 0.5f;
+    if (aura.damage_phase < 1.0f) continue;
+    aura.damage_phase -= 1.0f;
     const int32_t damage = max(aura.damage_per_tick, 0);
     if (radius <= 0.0f || damage <= 0) continue;
     for_each_spatial_candidate_in_radius(
@@ -123,6 +126,7 @@ $c e_update[-500](
 $cr c_inst_aura {
     float radius = 1.25f;
     int32 damage_per_tick = 1;
+    float damage_phase = 0.0f;
 };
 
 $r e_update[-700](

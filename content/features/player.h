@@ -37,9 +37,7 @@ $cr c_player {
 
 $cr p_player {
     c_player {};
-    c_rigid_body {
-        {0.0f, 0.0f}, 0.0f, {0.0f, 0.0f}, 0.0f
-    };
+    c_rigid_body {};
     c c_kinematic_motion {};
     c_health {};
     c c_aabb {
@@ -51,19 +49,13 @@ $cr p_player {
     c c_player_inventory {};
     c c_player_weapon {};
     r c_textured_sprite {
-        {}, {}, 0.0f, {}, 0u, 0.0f, 0
+        make_sprite<t_player>({}, 18.0f)
     };
     r c_rigidbody_sample_history {};
     r c_render_motion_presentation {};
     r c_motion_lifecycle_state {};
     r c_presented_motion {};
 };
-
-$r e_add(const c_player& player, c_textured_sprite& sprite) {
-    (void)player;
-    sprite = make_sprite<t_player>({}, 18.0f);
-};
-
 
 inline entity spawn_inventory_projectile(
         const EngineContentCallContext& context,
@@ -86,7 +78,7 @@ inline entity spawn_inventory_projectile(
         spawned.set<c_inst_source>({speed, lifetime, owner});
         spawned.set<c_projectile>({lifetime});
         spawned.set<c_projectile_previous>({origin});
-        spawned.set<c_knockback_on_hit>({0.65f});
+        spawned.set<c_knockback_on_hit>({0.325f});
         e_item_inst_apply apply{spawned, 0, 0};
         const uint32_t item_count =
             min<uint32_t>(inventory.count, 10u);
@@ -126,7 +118,7 @@ $c e_update[-500](
             ++g_shoot_sequence;
             if (!g_shoot_sequence) ++g_shoot_sequence;
         }
-        constexpr float speed = 0.33333334f;
+        constexpr float speed = 0.16666667f;
         body.velocity = movement * speed;
         if (cursor.valid)
             body.rotation = vec_to_angle(
@@ -142,7 +134,7 @@ $c e_update[-500](
                     && dot(direction, direction) > 0.000001f) {
                 direction = normalize(direction);
                 constexpr float projectile_radius = 0.14f;
-                constexpr float projectile_speed = 5.0f;
+                constexpr float projectile_speed = 2.5f;
                 const vec2 origin = body.position + bounds.offset
                     + direction * (bounds.half_size.x + projectile_radius);
                 const float aim_angle = vec_to_angle(direction);
@@ -154,7 +146,7 @@ $c e_update[-500](
                         aim_angle, projectile_speed, 2.0f, inventory);
                     spawned_any = spawned_any || static_cast<bool>(projectile);
                 }
-                if (spawned_any) weapon.cooldown_ticks = 1;
+                if (spawned_any) weapon.cooldown_ticks = 2;
             }
         }
     }

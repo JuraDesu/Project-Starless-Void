@@ -69,15 +69,13 @@ $c g_start {
     g_projectile_emitters.reset();
     g_fire_emitters.reset();
     g_aura_emitters.reset();
-    world.spawn<p_player>();
-    world.spawn<p_dummy>();
-    world.spawn<p_dummy>([](entity e) {
+    world.spawn<p_player>([](entity e) {
         return e.set<c_rigid_body>(
-            {{2.1f, 0.75f}, 0.0f, {}, 0.0f});
+            {{bounds.pos.x + bounds_center.x, bounds.pos.y + bounds.bounds.y * 0.2}, 0.0f, {}, 0.0f});
     });
     world.spawn<p_dummy>([](entity e) {
         return e.set<c_rigid_body>(
-            {{2.1f, -0.75f}, 0.0f, {}, 0.0f});
+            {{bounds.pos.x + bounds_center.x, bounds.pos.y + bounds.bounds.y * 0.9}, 0.0f, {}, 0.0f});
     });
     const auto item_types = component_children<c_item>();
 

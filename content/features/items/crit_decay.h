@@ -1,6 +1,6 @@
 $cr c_item_crit : c_item {
     float travel_budget = 3.5f;
-    float velocity_multiplier = 0.92f;
+    float velocity_multiplier = 0.9591663f;
 
     r e_item_visual {
         ctx.name = "crit decay";
@@ -26,8 +26,8 @@ $c e_update[-500](
     decay.travel_remaining -= length(body.velocity);
     body.velocity *= clamp(decay.velocity_multiplier, 0.0f, 1.0f);
     if (decay.travel_remaining <= 0.0f
-            || dot(body.velocity, body.velocity) <= 0.0004f) {
-        const float rotation = length(body.velocity) > 0.0001f
+            || dot(body.velocity, body.velocity) <= 0.0001f) {
+        const float rotation = length(body.velocity) > 0.00005f
             ? vec_to_angle(body.velocity) : body.rotation;
         begin_motion_despawn(
             e, tick, 1.0f, body.position, body.position,
@@ -37,5 +37,5 @@ $c e_update[-500](
 
 $c c_inst_crit_decay {
     float travel_remaining = 3.5f;
-    float velocity_multiplier = 0.92f;
+    float velocity_multiplier = 0.9591663f;
 };

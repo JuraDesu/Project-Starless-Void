@@ -1,6 +1,6 @@
 $cr c_item_auto_projectile : c_item {
-    int32 interval_ticks = 15;
-    float speed = 5.0f;
+    int32 interval_ticks = 30;
+    float speed = 2.5f;
     float lifetime = 2.0f;
     float target_radius = 9.0f;
 
@@ -37,9 +37,9 @@ $cr c_item_auto_projectile : c_item {
 };
 
 $c c_player_auto_projectile {
-    int32 interval_ticks = 15;
-    int32 ticks_remaining = 15;
-    float speed = 5.0f;
+    int32 interval_ticks = 30;
+    int32 ticks_remaining = 30;
+    float speed = 2.5f;
     float lifetime = 2.0f;
     float target_radius = 9.0f;
 };
@@ -92,5 +92,5 @@ $c e_update[-500](
     spawn_inventory_projectile(
         context, world, e.stable_id(), origin, angle,
         max(automatic.speed, 0.1f),
-        max(automatic.lifetime, 1.0f / 30.0f), inventory);
+        max(automatic.lifetime, 1.0f / 60.0f), inventory);
 };

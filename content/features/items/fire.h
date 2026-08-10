@@ -19,7 +19,7 @@ $cr c_item_fire : c_item {
 
 $c e_update[-500](c_effect_burning& burning, c_health& health) {
     --burning.ticks_remaining;
-    burning.pending_damage += 0.2f;
+    burning.pending_damage += 0.1f;
     const int32_t whole = static_cast<int32_t>(
         std::floor(burning.pending_damage));
     if (whole > 0) {
@@ -38,8 +38,8 @@ $c e_hit(
     entity target = world.from_stable_id(event.target);
     if (target && target.has<c_burnable>()) {
         auto* effect = target.try_get_mut<c_effect_burning>();
-        if (effect) effect->ticks_remaining = 20;
-        else target.set<c_effect_burning>({20, 0.0f});
+        if (effect) effect->ticks_remaining = 40;
+        else target.set<c_effect_burning>({40, 0.0f});
     }
 };
 
@@ -105,7 +105,7 @@ inline void emit_burning_particles(
 $c c_inst_debuff_burning {};
 $c c_burnable {};
 $cr c_effect_burning {
-    int32 ticks_remaining = 20;
+    int32 ticks_remaining = 40;
     float pending_damage = 0.0f;
 };
 

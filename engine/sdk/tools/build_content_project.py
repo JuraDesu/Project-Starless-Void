@@ -110,7 +110,13 @@ def main() -> int:
         return fail("Ninja was not found; install it or set NINJA_PATH to its executable")
     emsdk = emsdk_root()
     if not emsdk:
-        return fail("Emscripten SDK was not found; run setup_emsdk.sh or set EMSDK")
+        if os.name == "nt":
+            return fail(
+                "Emscripten SDK was not found; run setup_emsdk.bat or set "
+                "EMSDK=C:\\path\\to\\emsdk before building")
+        return fail(
+            "Emscripten SDK was not found; run ./setup_emsdk.sh or export "
+            "EMSDK=/path/to/emsdk before building")
     version_error = check_emcc(emsdk, pinned_emsdk(engine))
     if version_error:
         return fail(version_error)

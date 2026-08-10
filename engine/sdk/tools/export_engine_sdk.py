@@ -43,6 +43,7 @@ def main() -> int:
     parser.add_argument("--source-glm", type=Path, required=True)
     parser.add_argument("--engine-cmake", type=Path, required=True)
     parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--metadata", type=Path, required=False)
     parser.add_argument("--tools-root", type=Path, required=True)
     parser.add_argument("--tool", action="append", default=[])
     parser.add_argument("--destination", type=Path, required=True)
@@ -59,6 +60,8 @@ def main() -> int:
         sources[Path("include/glm") / source.relative_to(args.source_glm)] = source
     sources[Path("cmake/EngineContent.cmake")] = args.engine_cmake
     sources[Path("engine-content-config.cmake")] = args.config
+    if args.metadata:
+        sources[Path("emsdk-version.txt")] = args.metadata
     for name in args.tool:
         sources[Path("tools") / name] = args.tools_root / name
 

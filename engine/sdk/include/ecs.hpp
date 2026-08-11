@@ -445,6 +445,7 @@ public:
             if (!context || !user_data) return 0;
             auto& function =
                 *static_cast<State*>(user_data)->initialize;
+            active_callback_scope scope(*context);
             entity value{*context, entity_value};
             if constexpr (std::is_same_v<
                     std::invoke_result_t<InitializeType&, entity&>, bool>) {

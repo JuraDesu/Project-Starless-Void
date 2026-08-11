@@ -54,9 +54,12 @@ struct c_audio_source {
     c_audio_source() = default;
     explicit c_audio_source(EngineAudioId value,
             audio_playback state = audio_playback::stopped,
-            bool repeat = false)
+            bool repeat = false,
+            float initial_gain = 1.0f)
         : clip(value), playback(static_cast<uint32_t>(state)),
-          looping(repeat ? 1u : 0u) {}
+          looping(repeat ? 1u : 0u),
+          gain(std::isfinite(initial_gain) && initial_gain >= 0.0f
+              ? initial_gain : 1.0f) {}
 
     bool valid_context() const {
         const auto* context = active_callback_context();

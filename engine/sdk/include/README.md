@@ -64,6 +64,8 @@ component. Adding it creates a looping or one-shot voice; `play`, `pause`,
 `stop`, and `seek_samples(from_seconds(...))` control it from render callbacks.
 Its live cursor is available through `sample_position()` and
 `position_seconds()`. One-shot effects continue to use `play_spatial_audio`.
+Audio assets may be WAV or MP3 files; the engine decodes both into its
+canonical stereo 48 kHz mixer format.
 
 `breakpoint_time`, `breakpoint_cursor`, `breakpoint_insert`, and
 `run_crossed_breakpoints` provide reusable ordered timelines for typed content

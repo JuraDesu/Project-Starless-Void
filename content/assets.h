@@ -1,6 +1,7 @@
 #include "registry.hpp"
 
 inline EngineAudioId audio_fx{};
+inline EngineAudioId audio_music{};
 
 $ g_init {
     static constexpr vec2 line_vertices[] = {
@@ -36,4 +37,6 @@ $ g_init {
     assets.font("quantix", "assets/fonts/quantix.ttf", 32u, 4u);
     assets.font("sipper", "assets/fonts/sipper.ttf", 32u, 4u);
     assets.audio("laser", "assets/audio/fx1.wav", audio_fx);
+    assets.audio(
+        "music", "assets/audio/starless_void.mp3", audio_music);
 };

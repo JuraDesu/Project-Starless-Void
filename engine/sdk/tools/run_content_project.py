@@ -62,6 +62,45 @@ def port_listening(port: int) -> bool:
         return False
 
 
+def listening_process_ids(port: int) -> list[int]:
+    if os.name == "nt":
+        command = (
+            "Get-NetTCPConnection -State Listen -LocalPort "
+            f"{port} -ErrorAction SilentlyContinue | "
+            "Select-Object -ExpandProperty OwningProcess"
+        )
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", command],
+            capture_output=True, text=True, check=False)
+        return sorted({int(value) for value in result.stdout.split() if value.isdigit()})
+    try:
+        result = subprocess.run(
+            ["lsof", "-t", f"-iTCP:{port}", "-sTCP:LISTEN"],
+            capture_output=True, text=True, check=False)
+    except OSError:
+        # `lsof` is conventional on Linux, but is not installed on every
+        # minimal distribution.  In that case retain the conservative
+        # behaviour: never claim an unknown listener is ours.
+        return []
+    return sorted({int(value) for value in result.stdout.split() if value.isdigit()})
+
+
+def owned_server(pid: int, server: Path, output: Path) -> bool:
+    command_line = process_command_line(pid).lower().replace("/", "\\")
+    server_text = str(server).lower().replace("/", "\\")
+    output_text = str(output).lower().replace("/", "\\")
+    return server_text in command_line and output_text in command_line
+
+
+def wait_for_port_closed(port: int, timeout: float = 3.0) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if not port_listening(port):
+            return True
+        time.sleep(0.05)
+    return not port_listening(port)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", type=Path, default=Path.cwd())
@@ -84,9 +123,7 @@ def main() -> int:
             old_pid = int(pid_file.read_text(encoding="ascii").strip())
         except ValueError:
             old_pid = 0
-        command_line = process_command_line(old_pid) if old_pid else ""
-        owned = str(server).lower() in command_line.lower() and str(output).lower() in command_line.lower()
-        if owned:
+        if old_pid and owned_server(old_pid, server, output):
             print(f"Stopping previous HTTP server PID {old_pid}...")
             stop_process(old_pid)
         elif old_pid:
@@ -94,7 +131,17 @@ def main() -> int:
         pid_file.unlink(missing_ok=True)
 
     if port_listening(args.port):
-        return fail(f"port {args.port} is already owned by an unrelated process")
+        listeners = listening_process_ids(args.port)
+        owned_listeners = [
+            pid for pid in listeners if owned_server(pid, server, output)]
+        if owned_listeners:
+            for pid in owned_listeners:
+                print(f"Stopping recovered HTTP server PID {pid}...")
+                stop_process(pid)
+            if not wait_for_port_closed(args.port):
+                return fail(f"previous project HTTP server did not release port {args.port}")
+        else:
+            return fail(f"port {args.port} is already owned by an unrelated process")
 
     log = build / "http_server.log"
     with log.open("ab") as stream:

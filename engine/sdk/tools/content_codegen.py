@@ -2674,7 +2674,8 @@ def validate_module(module: Module, dependencies: dict[str, dict]) -> None:
                else reference)
         if ":" in reference:
             dep_id = reference.split(":", 1)[0]
-            if dep_id != module.content_id and dep_id not in dependencies:
+            if (dep_id != module.content_id and dep_id != "builtin"
+                    and dep_id not in dependencies):
                 raise CodegenError(f"{source}: reference to undeclared dependency {reference}")
         record = all_components.get(key)
         if not record:

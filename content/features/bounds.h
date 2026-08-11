@@ -8,7 +8,7 @@ inline const box visible_bounds{
 
 // Projectiles leave the play area before disappearing, while the player is
 // constrained to a smaller inset area.
-inline constexpr float despawn_bounds_offset = 7.0f;
+inline constexpr float despawn_bounds_offset = 15.0f;// there are two reasons why its so far, both are related to player projectile. one is because i was able to see it despawn at the top. and because the homing projectiles sometimes hit the boundary, so they couldnt come back. both of these issues are somewhat related to the high velocity of the projectile.
 inline const box despawn_bounds{
     visible_bounds.pos - vec2{
         despawn_bounds_offset, despawn_bounds_offset},

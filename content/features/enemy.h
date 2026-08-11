@@ -38,7 +38,7 @@ $c e_update(
 ) {
     if (boss.cooldown <= 0.f) {
         boss.cooldown = 1.0;
-        constexpr int count = 40;
+        constexpr int count = 20;
         for (int i = 0; i < count; i++){
             float fi = float(i) / float(count);
             float angle = fi * TPI + boss.shoot_direction_offset;
@@ -55,8 +55,8 @@ $c e_update(
                     e, tick, projectile_body);
             });
         }
-        boss.shoot_direction_offset += 0.06;
+        boss.shoot_direction_offset += 0.15;
     } else {
-        boss.cooldown -= 0.07;
+        boss.cooldown -= 0.03;
     }
 };

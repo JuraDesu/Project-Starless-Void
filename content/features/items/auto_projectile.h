@@ -92,5 +92,5 @@ $c e_update[-500](
     spawn_inventory_projectile(
         world, e.stable_id(), origin, angle,
         max(automatic.speed, 0.1f),
-        max(automatic.lifetime, 1.0f / 60.0f), inventory);
+        max(static_cast<int32>(automatic.lifetime * 60.0f), 1), inventory);
 };

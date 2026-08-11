@@ -30,8 +30,8 @@ $c e_hit(
         origin, angle, direction * 2.5f, 0.0f};
     world.spawn<p_inst>([&](entity& child) {
         child.set<c_rigid_body>(child_body);
-        child.set<c_inst_source>({2.5f, 2.0f, source.owner});
-        child.set<c_projectile>({2.0f});
+        child.set<c_inst_source>({2.5f, source.owner});
+        child.set<c_temporary>({120});
         child.set<c_projectile_previous>({origin});
         child.set<c_inst_homing>({8.0f, event.target});
         child.set<c_knockback_on_hit>({0.325f});

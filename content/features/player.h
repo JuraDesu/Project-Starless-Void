@@ -47,7 +47,7 @@ inline bool spawn_inventory_projectile(
         const vec2& origin,
         float angle,
         float speed,
-        float lifetime,
+        int32 lifetime_ticks,
         const c_player_inventory& inventory) {
     const vec2 velocity = angle_to_vec(angle);
     const c_rigid_body projectile_body{
@@ -59,8 +59,8 @@ inline bool spawn_inventory_projectile(
     entity spawned;
     return world.spawn<p_inst>(spawned, [&](entity& spawned) {
         spawned.set<c_rigid_body>(projectile_body);
-        spawned.set<c_inst_source>({speed, lifetime, owner});
-        spawned.set<c_projectile>({lifetime});
+        spawned.set<c_inst_source>({speed, owner});
+        spawned.set<c_temporary>({lifetime_ticks});
         spawned.set<c_projectile_previous>({origin});
         spawned.set<c_knockback_on_hit>({0.325f});
         e_item_inst_apply apply{spawned, 0, 0};
@@ -136,7 +136,7 @@ $c e_update[-500](
                 for (uint32_t shot = 0; shot < shot_count; ++shot) {
                     const bool projectile = spawn_inventory_projectile(
                         world, e.stable_id(), origin,
-                        aim_angle, projectile_speed, 2.0f, inventory);
+                        aim_angle, projectile_speed, 120, inventory);
                     spawned_any = spawned_any || projectile;
                 }
                 if (spawned_any) weapon.cooldown_ticks = 2;

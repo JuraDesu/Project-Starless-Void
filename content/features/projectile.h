@@ -37,12 +37,16 @@ $c c_inst_hit_budget {
 
 $c c_inst_source {
     float speed = 2.5f;
-    float lifetime = 2.0f;
     entity_id owner = 0;
 };
 
-$c c_projectile {
-    float lifetime = 2.0f;
+$c c_temporary {
+    int32 ticks = 120;
+};
+
+$c e_update[170](c_temporary& temporary) {
+    if (--temporary.ticks <= 0)
+        e.destroy();
 };
 
 $c c_projectile_recent_hit {
@@ -69,7 +73,7 @@ $cr p_inst {
     c_inst_damage {};
     c_inst_hit_budget {};
     c_inst_source {};
-    c_projectile {};
+    c_temporary {120};
     c_hit_feedback_history {};
     c_knockback_on_hit {};
     c_rigid_body {};
@@ -104,7 +108,6 @@ $c e_hit(
 $c e_update[200](
     const c_inst_source& source,
     c_inst_hit_budget& budget,
-    c_projectile& projectile,
     const c_rigid_body& body,
     const c_aabb& projectile_bounds,
     const c_collider& projectile_collider,
@@ -223,10 +226,6 @@ $c e_update[200](
     }
     const vec2 segment_end = body.position;
     previous.position = segment_end;
-    projectile.lifetime -= dt;
-    if (projectile.lifetime <= 0.0f) {
-        destroy = true;
-    }
     if (destroy) {
         const float rotation =
             std::abs(body.velocity.x) + std::abs(body.velocity.y)

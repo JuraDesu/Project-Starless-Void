@@ -42,7 +42,7 @@ $c e_update(
         for (int i = 0; i < count; i++){
             float fi = float(i) / float(count);
             float angle = fi * TPI + boss.shoot_direction_offset;
-            constexpr float speed = 0.1f;
+            constexpr float speed = 0.05f;
             world.spawn<p_enemy_projectile>([&](entity& e) {
                 const c_rigid_body projectile_body{
                     rb.position,
@@ -57,6 +57,6 @@ $c e_update(
         }
         boss.shoot_direction_offset += 0.06;
     } else {
-        boss.cooldown -= 0.1;
+        boss.cooldown -= 0.07;
     }
 };

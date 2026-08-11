@@ -63,12 +63,11 @@ $cr p_ground_item {
 };
 
 $c e_update[200](
-    const c_player& player,
+    c_player,
     const c_rigid_body& player_body,
     const c_aabb& player_bounds,
     c_player_inventory& inventory
 ) {
-    (void)player;
     if (inventory.count < 10u) {
         const vec2 center = player_body.position + player_bounds.offset;
         for_each_spatial_candidate_in_bounds(
@@ -99,12 +98,10 @@ $c e_update[200](
 };
 
 $r e_update[-800](
-    const c_item& item,
-    const c_ground_item& ground,
+    c_item,
+    c_ground_item,
     const c_rigid_body& body
 ) {
-    (void)item;
-    (void)ground;
     e_item_visual visual{};
     if (dispatch(e, visual) && visual.valid) {
         visual.icon.position = body.position;
@@ -113,7 +110,6 @@ $r e_update[-800](
     }
 };
 
-$r e_remove(const c_ground_item& item) {
-    (void)item;
+$r e_remove(c_ground_item) {
     e.remove<c_textured_sprite>();
 };

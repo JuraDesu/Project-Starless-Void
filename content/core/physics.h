@@ -256,8 +256,7 @@ inline bool for_each_spatial_candidate_in_radius(
 }
 
 
-$c e_add(const c_collider& collider) {
-    (void)collider;
+$c e_add(c_collider) {
     if (!e.has<c_spatial_partition>()) e.add<c_spatial_partition>();
 };
 
@@ -266,19 +265,17 @@ $c e_remove(c_spatial_partition& member) {
 };
 
 $c e_remove(
-    const c_collider& collider,
+    c_collider,
     c_spatial_partition& member
 ) {
-    (void)collider;
     erase_spatial(member);
 };
 
 $c e_update[0](
     c_rigid_body& body,
-    const c_kinematic_motion& kinematic,
+    c_kinematic_motion,
     exclude c_pending_destruction
 ) {
-    (void)kinematic;
     body.position += body.velocity;
     body.rotation += body.angular_velocity;
 };
@@ -286,9 +283,8 @@ $c e_update[0](
 $c e_update[100](
     const c_rigid_body& body,
     const c_aabb& bounds,
-    const c_collider& collider,
+    c_collider,
     c_spatial_partition& spatial
 ) {
-    (void)collider;
     refresh_spatial(e.stable_id(), body, bounds, spatial);
 };

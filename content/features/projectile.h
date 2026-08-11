@@ -89,11 +89,10 @@ $cr p_inst {
 };
 
 $c e_hit(
-    const c_inst& inst,
+    c_inst,
     const c_inst_damage& damage,
     const c_knockback_on_hit& knockback
 ) {
-    (void)inst;
     entity target = world.from_stable_id(event.target);
     auto* health = target.try_get_mut<c_health>();
     if (health) {

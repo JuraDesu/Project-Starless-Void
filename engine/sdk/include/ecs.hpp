@@ -36,6 +36,10 @@ struct query_term {
 template <typename Component>
 using read = query_term<Component, ACCESS_READ, MATCH_REQUIRED>;
 
+/* Match component presence without exposing or materializing its storage. */
+template <typename Component>
+using present = query_term<Component, ACCESS_FILTER, MATCH_REQUIRED>;
+
 template <typename Component>
 using write = query_term<Component, ACCESS_WRITE, MATCH_REQUIRED>;
 

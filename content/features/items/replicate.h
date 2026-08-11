@@ -14,10 +14,9 @@ $cr c_item_replicate : c_item {
 };
 
 $c e_hit(
-    const c_inst_replicate& replicate,
+    c_inst_replicate,
     const c_inst_source& source
 ) {
-    (void)replicate;
     uint64_t seed = e.stable_id()
         ^ (event.target * 0x9e3779b97f4a7c15ull);
     seed ^= seed >> 30u;

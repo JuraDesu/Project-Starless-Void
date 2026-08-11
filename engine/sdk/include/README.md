@@ -16,8 +16,9 @@ handles. Runtime gameplay operations use those handles, while generated C++
 traits preserve typed component access.
 
 Callbacks can perform scoped ECS iteration with `World::query`. Terms use
-`read<T>`, `write<T>`, `mut<T>`, `optional_read<T>`, `optional_mut<T>`, and
-`exclude<T>`. Query callbacks receive an `entity`; returning `false` stops a
+`read<T>`, `present<T>`, `write<T>`, `mut<T>`, `optional_read<T>`,
+`optional_mut<T>`, and `exclude<T>`. `present<T>` matches required component
+presence without exposing or fetching its storage. Query callbacks receive an `entity`; returning `false` stops a
 query successfully. Component handles are resolved at runtime, shared-component
 write ownership is enforced, writable terms are marked modified, nested queries
 are supported, and structural changes are deferred until the outer iteration
@@ -51,7 +52,7 @@ that exported SDK and the sibling prebuilt runtime; they do not include engine
 source files.
 # Content DSL surface
 
-The supported declarations are intentionally prefix-driven: `$s/$c/$r/$sc/$cr/$scr c_*` and `e_*` components/recipes, `o_*` payloads or observers, anonymous `system(...)`, and `$compute`. Helper structs/enums/constants, meshes, textures, audio, fonts, and input registrations are ordinary C++. Register all runtime assets from the single `content/assets.h` callback; atlas and font source paths must be literals so the build can stage them before compiling the content module. Atlas slice marker types are generated automatically, with qualified `t_<atlas>_<slice>` names and unique short aliases.
+The supported declarations are intentionally prefix-driven: `$s/$c/$r/$sc/$cr/$scr c_*` components, `p_*` prefabs, `e_*` events and handlers, global `g_*` hooks, and `$compute`. Event and update handlers share one component-term grammar. A bare component such as `c_player` requires presence without creating a callback variable; `c_status(*)` does the same for paired instances. Named terms retain `read`, `write`, `mut`, `optional`, and `exclude` forms. Helper structs/enums/constants, meshes, textures, audio, fonts, and input registrations are ordinary C++. Register all runtime assets from the single `content/assets.h` callback; atlas and font source paths must be literals so the build can stage them before compiling the content module. Atlas slice marker types are generated automatically, with qualified `t_<atlas>_<slice>` names and unique short aliases.
 
 `AssetRegistry::audio_distance_scale(0.0f)` makes audio non-spatial: each sound
 uses its configured base gain equally in both channels. Positive values enable

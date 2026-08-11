@@ -989,7 +989,6 @@ $r e_update[1000](
 ) {
     if (!g_debug_overlay_enabled)
         continue;
-    (void)body;
     vec2 visual_position{};
     float visual_rotation = 0.0f;
     const auto* presented =

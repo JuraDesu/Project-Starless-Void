@@ -102,7 +102,9 @@ typedef enum EngineSimulationMode {
 typedef enum EngineTermAccess {
     ACCESS_READ = 1,
     ACCESS_WRITE = 2,
-    ACCESS_READ_WRITE = 3
+    ACCESS_READ_WRITE = 3,
+    /* Required presence-only filter.  No component storage is exposed. */
+    ACCESS_FILTER = 4
 } EngineTermAccess;
 
 typedef enum EngineTermMatch {

@@ -20,11 +20,9 @@ $cr p_dummy {
 
 // Training dummies restore their health after all ordinary hit effects.
 $c e_hit[1000](
-    const c_inst& inst,
-    const c_inst_damage& damage
+    c_inst,
+    c_inst_damage
 ) {
-    (void)inst;
-    (void)damage;
     entity target = world.from_stable_id(event.target);
     if (!target || !target.has<c_heal_full_on_hit>()) continue;
     auto* health = target.try_get_mut<c_health>();

@@ -45,13 +45,12 @@ $c c_player_auto_projectile {
 };
 
 $c e_update[-500](
-    const c_player& player,
+    c_player,
     const c_rigid_body& body,
     const c_aabb& bounds,
     const c_player_inventory& inventory,
     c_player_auto_projectile& automatic
 ) {
-    (void)player;
     automatic.interval_ticks = max(automatic.interval_ticks, 1);
     if (--automatic.ticks_remaining > 0) continue;
     automatic.ticks_remaining = automatic.interval_ticks;

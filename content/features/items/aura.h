@@ -94,13 +94,12 @@ $cr c_item_aura : c_item {
 };
 
 $c e_update[-500](
-    const c_inst& inst,
+    c_inst,
     const c_inst_source& source,
     c_inst_aura& aura,
     const c_rigid_body& body,
     exclude c_pending_destruction
 ) {
-    (void)inst;
     const float radius = max(aura.radius, 0.0f);
     aura.damage_phase += 0.5f;
     if (aura.damage_phase < 1.0f) continue;

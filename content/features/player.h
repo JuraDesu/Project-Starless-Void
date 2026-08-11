@@ -97,12 +97,11 @@ inline entity spawn_inventory_projectile(
 
 $c e_update[-500](
     c_rigid_body& body,
-    const c_player& player,
+    c_player,
     const c_aabb& bounds,
     const c_player_inventory& inventory,
     c_player_weapon& weapon
 ) {
-    (void)player;
     const auto cursor = input_cursor();
     const auto up = input_button("move_up");
     const auto down = input_button("move_down");

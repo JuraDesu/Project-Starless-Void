@@ -230,8 +230,7 @@ $c e_hit[2000](c_hit_feedback_history& history) {
         particle_hash(e.stable_id() ^ event.target ^ tick));
 };
 
-$r e_present_shot(const c_inst& inst) {
-    (void)inst;
+$r e_present_shot(c_inst) {
     play_spatial_audio(
         audio_fx, event.position.x, event.position.y,
         0.45f);
@@ -245,15 +244,13 @@ $r e_present_shot(const c_inst& inst) {
         10u, 0.11f, 0.16f, 0.09f, false);
 };
 
-$r e_present_hit(const c_inst& inst) {
-    (void)inst;
+$r e_present_hit(c_inst) {
     play_spatial_audio(
         audio_fx,
         event.position.x, event.position.y, 0.75f);
 };
 
-$r e_present_hit[10](const c_inst& inst) {
-    (void)inst;
+$r e_present_hit[10](c_inst) {
     c_presented_motion presented{};
     presented.body.position = event.position;
     presented.sample_tick = 0.0;
@@ -326,12 +323,11 @@ inline void emit_projectile_trail(
 
 
 $r e_update[-700](
-    const c_inst& inst,
+    c_inst,
     const c_presented_motion& presented,
     const c_hit_feedback_history& hit_feedback,
     c_hit_feedback_cursor& hit_feedback_cursor
 ) {
-        (void)inst;
         const uint64_t stable_id = e.stable_id();
         auto* emitter = find_projectile_emitter(stable_id, true);
         if (!emitter)

@@ -30,11 +30,9 @@ $c e_update[-500](c_effect_burning& burning, c_health& health) {
 };
 
 $c e_hit(
-    const c_inst_debuff_burning& burning,
-    const c_inst_damage& damage
+    c_inst_debuff_burning,
+    c_inst_damage
 ) {
-    (void)burning;
-    (void)damage;
     entity target = world.from_stable_id(event.target);
     if (target && target.has<c_burnable>()) {
         auto* effect = target.try_get_mut<c_effect_burning>();
@@ -109,10 +107,9 @@ $cr c_effect_burning {
 };
 
 $r e_update[-700](
-    const c_effect_burning& burning,
+    c_effect_burning,
     const c_rigid_body& body
 ) {
-    (void)burning;
     const uint64_t stable_id = e.stable_id();
     auto* entry = g_fire_emitters.find(stable_id, g_particle_frame, true);
     auto* emitter = entry ? &entry->state : nullptr;

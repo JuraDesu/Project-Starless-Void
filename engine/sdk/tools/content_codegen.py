@@ -22,6 +22,10 @@ ACCESS_ENUM = {
     "write": "ACCESS_WRITE",
     "mut": "ACCESS_READ_WRITE",
 }
+# A bare component term is a required presence filter.  It deliberately does
+# not materialize a column in the generated callback.
+PRESENCE_ACCESS = "ACCESS_FILTER"
+ACCESS_CPP = {**ACCESS_ENUM, PRESENCE_ACCESS: PRESENCE_ACCESS}
 EVENT_ENUM = {
     "e_add": "OBSERVER_ADD",
     "e_set": "OBSERVER_SET",
@@ -216,6 +220,10 @@ class Term:
     variable: str
     match: str = "required"
     pair_wildcard: bool = False
+
+    @property
+    def presence_only(self) -> bool:
+        return not self.variable
 
 
 @dataclass
@@ -682,7 +690,8 @@ class Parser:
             self.i += 1
         raise self.error("unterminated event member")
 
-    def terms(self) -> list[Term]:
+    def component_terms(self) -> list[Term]:
+        """Parse the common component-term grammar used by all handlers."""
         terms: list[Term] = []
         self.literal("(")
         self.skip()
@@ -694,6 +703,9 @@ class Parser:
                 access = self.identifier()
                 component = self.identifier(reference=True)
                 pair_wildcard = self._pair_wildcard()
+                self.skip()
+                if self.i >= len(self.text) or self.text[self.i] in ",)":
+                    raise self.error("optional terms require a variable name")
                 variable = self.identifier()
             elif first == "exclude":
                 access = "read"
@@ -716,13 +728,26 @@ class Parser:
                 component = first
                 pair_wildcard = self._pair_wildcard()
                 self.skip()
+                # A bare component (including a bare pair wildcard) is a
+                # required presence-only term.  It matches without exposing
+                # storage or a target variable to the callback.
+                if self.i >= len(self.text) or self.text[self.i] in ",)":
+                    access = PRESENCE_ACCESS
+                    variable = ""
+                    terms.append(Term(access, component, variable, match, pair_wildcard))
+                    self.skip()
+                    if self.i < len(self.text) and self.text[self.i] == ",":
+                        self.i += 1
+                    elif self.i >= len(self.text) or self.text[self.i] != ")":
+                        raise self.error("expected ',' or ')' in term list")
+                    continue
                 if self.i < len(self.text) and self.text[self.i] == "&":
                     self.i += 1
                     access = "mut"
                 else:
                     access = "read"
                 variable = self.identifier()
-            if access not in ACCESS_ENUM:
+            if access not in ACCESS_ENUM and access != PRESENCE_ACCESS:
                 raise self.error("term access must be read, write, or mut")
             terms.append(Term(access, component, variable, match, pair_wildcard))
             self.skip()
@@ -1055,7 +1080,7 @@ class Parser:
                 fields, members = self.event_fields()
                 return Event(event, RESIDENCY[residency], fields, source, members=members)
             order = self.handler_order()
-            terms = self.terms()
+            terms = self.component_terms()
             if not terms:
                 if event == "e_update":
                     raise self.error("empty e_update was replaced by g_update")
@@ -2808,11 +2833,11 @@ def validate_module(module: Module, dependencies: dict[str, dict]) -> None:
             record = resolve(term.component, system.source)
             if not record["residency"] & side:
                 raise CodegenError(f"{system.source}: component {term.component} is absent from system world")
-            if record["size"] == 0 and term.access != "read":
+            if record["size"] == 0 and term.access not in {"read", PRESENCE_ACCESS}:
                 raise CodegenError(
                     f"{system.source}: tag terms must use read access")
             if (record["residency"] not in (1, 2, 4)
-                    and term.access != "read"
+                    and term.access not in {"read", PRESENCE_ACCESS}
                     and world_mask(system.side)
                     != authority_mask(record["residency"])):
                 raise CodegenError(
@@ -2825,11 +2850,11 @@ def validate_module(module: Module, dependencies: dict[str, dict]) -> None:
             record = resolve(term.component, observer.source)
             if not record["residency"] & side:
                 raise CodegenError(f"{observer.source}: component {term.component} is absent from observer world")
-            if record["size"] == 0 and term.access != "read":
+            if record["size"] == 0 and term.access not in {"read", PRESENCE_ACCESS}:
                 raise CodegenError(
                     f"{observer.source}: tag terms must use read access")
             if (record["residency"] not in (1, 2, 4)
-                    and term.access != "read"
+                    and term.access not in {"read", PRESENCE_ACCESS}
                     and world_mask(observer.side)
                     != authority_mask(record["residency"])):
                 raise CodegenError(
@@ -3893,7 +3918,7 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
             lines.append(
                 f"      d.terms[{index}] = "
                 f"{{{component_id_expression(term.component, module.content_id)}, "
-                f"{ACCESS_ENUM[term.access]}, {MATCH_ENUM[term.match]}, "
+                f"{ACCESS_CPP[term.access]}, {MATCH_ENUM[term.match]}, "
                 f"{1 if term.pair_wildcard else 0}}};")
         lines.append("      if (!g_api->append_observer(g_engine_context, &d)) return 0; }")
     lines.extend(["        return 1;", "    case PHASE_SYSTEMS:"])
@@ -3908,7 +3933,7 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
             lines.append(
                 f"      d.terms[{index}] = "
                 f"{{{component_id_expression(term.component, module.content_id)}, "
-                f"{ACCESS_ENUM[term.access]}, {MATCH_ENUM[term.match]}, "
+                f"{ACCESS_CPP[term.access]}, {MATCH_ENUM[term.match]}, "
                 f"{1 if term.pair_wildcard else 0}}};")
         lines.append("      if (!g_api->append_system(g_engine_context, &d)) return 0; }")
     lines.extend([
@@ -3989,6 +4014,8 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
         for index, term in enumerate(system.terms):
             if term.match == "exclude":
                 continue
+            if term.presence_only:
+                continue
             type_name = cpp_name(term.component, module.content_id)
             const = "const " if term.access == "read" else ""
             if term_is_tag(term.component):
@@ -4011,7 +4038,7 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
                 lines.append(
                     f"            {const}{type_name}& {term.variable} = "
                     f"static_cast<{const}{type_name}*>(invocation->columns[{index}].data)[i];")
-            if term.pair_wildcard:
+            if term.pair_wildcard and not term.presence_only:
                 lines.append(
                     f"            entity {term.variable}_target{{callback_context_internal, "
                     f"invocation->columns[{index}].pair_target}};")
@@ -4063,6 +4090,8 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
         for index, term in enumerate(observer.terms):
             if term.match == "exclude":
                 continue
+            if term.presence_only:
+                continue
             type_name = cpp_name(term.component, module.content_id)
             const = "const " if term.access == "read" else ""
             if term_is_tag(term.component):
@@ -4085,7 +4114,7 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
                 lines.append(
                     f"            {const}{type_name}& {term.variable} = "
                     f"static_cast<{const}{type_name}*>(invocation->columns[{index}].data)[i];")
-            if term.pair_wildcard:
+            if term.pair_wildcard and not term.presence_only:
                 lines.append(
                     f"            entity {term.variable}_target{{callback_context_internal, "
                     f"invocation->columns[{index}].pair_target}};")

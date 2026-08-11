@@ -37,7 +37,7 @@ $c e_hit(
                 || !target.has<c_aabb>() || !target.has<c_collider>())
             return true;
         const auto& collider = target.get<c_collider>();
-        if ((collider.type_bits & collision_enemy) == 0u) return true;
+        if (!collider_has_type(collider, collision_enemy)) return true;
         const auto& body = target.get<c_rigid_body>();
         const auto& bounds = target.get<c_aabb>();
         const vec2 delta = body.position + bounds.offset - event.point;

@@ -61,6 +61,8 @@ TYPE_INFO = {
     "bool": ("uint8", 1, 1, None),
     "uint16": ("uint16", 2, 2, None),
     "int16": ("int16", 2, 2, None),
+    # The supported content ABI is WebAssembly, where C++ int is 32-bit.
+    "int": ("int", 4, 4, "VERTEX_SINT32"),
     "int32": ("int32", 4, 4, "VERTEX_SINT32"),
     "uint32": ("uint32", 4, 4, "VERTEX_UINT32"),
     "uint64": ("uint64", 8, 8, None),
@@ -82,6 +84,7 @@ IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 REF_RE = re.compile(r"[a-z][a-z0-9_-]*:[A-Za-z_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*")
 CONTENT_ID_RE = re.compile(r"[a-z][a-z0-9_-]*\Z")
 WGSL_TYPE = {
+    "int": "i32",
     "int32": "i32",
     "uint32": "u32",
     "float": "f32",
@@ -2402,7 +2405,7 @@ def validate_module(module: Module, dependencies: dict[str, dict]) -> None:
         layout_local(name)
 
     integer_types = {
-        "char", "int8", "uint8", "int16", "uint16", "int32", "uint32",
+        "char", "int8", "uint8", "int16", "uint16", "int", "int32", "uint32",
         "int64", "uint64", "entity_id"}
     float_types = {"float", "double"}
     vector_types = {
@@ -2647,7 +2650,7 @@ def validate_module(module: Module, dependencies: dict[str, dict]) -> None:
         return record
 
     supported_compute_types = {
-        "int32", "uint32", "float", "vec2", "vec3", "vec4"}
+        "int", "int32", "uint32", "float", "vec2", "vec3", "vec4"}
     for compute in module.computes:
         for item in compute.fields:
             if (item.type_name not in supported_compute_types

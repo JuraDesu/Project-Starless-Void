@@ -76,7 +76,7 @@ $cr p_inst {
     c c_kinematic_motion {};
     c c_projectile_previous {};
     c c_aabb {{}, {0.14f, 0.14f}};
-    c c_collider {6u, 1u, false, true};
+    c c_collider {collision_enemy | collision_tile, collision_friendly, false, true};
     r c_colored_quad {
         {}, {0.28f, 0.28f}, 0.0f,
         {0.35f, 0.95f, 1.0f, 1.0f}, 0.1f
@@ -139,8 +139,7 @@ $c e_update[200](
         const auto& target_bounds = target.get<c_aabb>();
         const auto& target_collider = target.get<c_collider>();
         if (health.current <= 0
-                || (projectile_collider.type_bits & target_collider.mask) == 0u
-                || (target_collider.type_bits & projectile_collider.mask) == 0u) {
+                || !colliders_match(projectile_collider, target_collider)) {
             return true;
         }
         const vec2 center{

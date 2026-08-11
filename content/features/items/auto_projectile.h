@@ -68,7 +68,7 @@ $c e_update[-500](
         const auto& health = target.get<c_health>();
         const auto& collider = target.get<c_collider>();
         if (health.current <= 0
-                || !(collider.type_bits & collision_enemy))
+                || !collider_has_type(collider, collision_enemy))
             return true;
         const vec2 position = target.get<c_rigid_body>().position
             + target.get<c_aabb>().offset;

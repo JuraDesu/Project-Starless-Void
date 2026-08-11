@@ -9,9 +9,17 @@
 
 
 
-inline constexpr uint32_t collision_friendly = 1u << 0u;
-inline constexpr uint32_t collision_enemy = 1u << 1u;
-inline constexpr uint32_t collision_tile = 1u << 2u;
+enum collision_layer : uint32 {
+    collision_none = 0u,
+    collision_friendly = 1u << 0u,
+    collision_enemy = 1u << 1u,
+    collision_tile = 1u << 2u,
+};
+
+using collision_mask = uint32;
+
+inline constexpr collision_mask collision_mask_all =
+    collision_friendly | collision_enemy | collision_tile;
 inline constexpr int32_t chunk_size = 16;
 inline constexpr uint32_t spatial_level_offsets[5] = {
     0u, 256u, 320u, 336u, 340u
@@ -127,11 +135,22 @@ $cr c_aabb {
 };
 
 $c c_collider {
-    uint32 mask;
-    uint32 type_bits;
+    collision_mask mask;
+    collision_mask type_bits;
     bool detectable;
     bool collide_tilemap;
 };
+
+inline bool colliders_match(
+        const c_collider& first, const c_collider& second) {
+    return (first.type_bits & second.mask) != collision_none
+        && (second.type_bits & first.mask) != collision_none;
+}
+
+inline bool collider_has_type(
+        const c_collider& collider, collision_layer layer) {
+    return (collider.type_bits & layer) != collision_none;
+}
 
 $c c_spatial_partition {
     ivec2 chunk;

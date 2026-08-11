@@ -27,7 +27,7 @@ $c e_update[-500](
         const auto* collider = candidate.try_get<c_collider>();
         return candidate && candidate.has<c_enemy>()
             && health && health->current > 0 && collider
-            && (collider->type_bits & collision_enemy) != 0u
+            && collider_has_type(*collider, collision_enemy)
             && candidate.has<c_rigid_body>() && candidate.has<c_aabb>();
     };
     if (!valid_target(target)) {

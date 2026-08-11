@@ -28,7 +28,7 @@ $c e_hit(
     const vec2 origin = event.point + direction;
     const c_rigid_body child_body{
         origin, angle, direction * 2.5f, 0.0f};
-    world.spawn<p_inst>([&](entity child) {
+    world.spawn<p_inst>([&](entity& child) {
         child.set<c_rigid_body>(child_body);
         child.set<c_inst_source>({2.5f, 2.0f, source.owner});
         child.set<c_projectile>({2.0f});

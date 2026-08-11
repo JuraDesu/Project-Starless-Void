@@ -43,6 +43,8 @@ using uvec4 = glm::uvec4;
 static_assert(sizeof(vec2) == sizeof(EngineVec2));
 static_assert(sizeof(vec3) == sizeof(EngineVec3));
 static_assert(sizeof(vec4) == sizeof(EngineVec4));
+static_assert(sizeof(int) == 4,
+    "content requires the 32-bit WebAssembly int ABI");
 static_assert(std::is_standard_layout_v<vec2> && std::is_trivially_copyable_v<vec2>);
 static_assert(std::is_standard_layout_v<vec3> && std::is_trivially_copyable_v<vec3>);
 static_assert(std::is_standard_layout_v<vec4> && std::is_trivially_copyable_v<vec4>);

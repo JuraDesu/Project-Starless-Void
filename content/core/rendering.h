@@ -18,6 +18,7 @@ $r c_textured_sprite {
     uint32 atlas_layer;
     float depth;
     entity_id stable_id = 0;
+    uint32 visible = 1;
 
     shader {
         mesh quad;
@@ -26,6 +27,7 @@ $r c_textured_sprite {
         logic {
             bridge {
                 uv: vec2f,
+                visible: u32,
             };
 
             vertex {
@@ -39,9 +41,11 @@ $r c_textured_sprite {
                 out.position = projection * vec4f(
                     position + rotated, depth, 1.0);
                 out.uv = uv_rect.xy + local_uv * uv_rect.zw;
+                out.visible = visible;
             }
 
             fragment {
+                if (in.visible == 0u) { discard; }
                 let sampled = sample_texture(in.uv);
                 if (sampled.a < 0.01) { discard; }
                 out.color = sampled;
@@ -70,6 +74,7 @@ $r c_colored_quad {
     float rotation;
     vec4 color;
     float depth;
+    uint32 visible = 1;
 
     shader {
         mesh quad;
@@ -77,6 +82,7 @@ $r c_colored_quad {
         logic {
             bridge {
                 color: vec4f,
+                visible: u32,
             };
 
             vertex {
@@ -90,9 +96,11 @@ $r c_colored_quad {
                 out.position = projection * vec4f(
                     position + rotated, depth, 1.0);
                 out.color = color;
+                out.visible = visible;
             }
 
             fragment {
+                if (in.visible == 0u) { discard; }
                 out.color = in.color;
             }
         };
@@ -109,6 +117,7 @@ $r c_debug_line {
         topology lines;
         mesh line;
         blend alpha;
+        order 32767;
         logic {
             bridge {
                 color: vec4f,
@@ -140,6 +149,7 @@ $r c_debug_wireframe {
         topology lines;
         mesh quad_outline;
         blend alpha;
+        order 32767;
         logic {
             bridge {
                 color: vec4f,
@@ -454,6 +464,13 @@ inline void seed_rigidbody_history_from_spawn_breakpoints(
         c_rigid_body existing{};
         if (rigidbody_history_find_exact(
                 history, sample_tick, existing)) {
+            continue;
+        }
+        // A spawn sample is only an initialization aid. Once the rolling
+        // history is full, reinserting that old sample would evict a live
+        // interpolation anchor every tick.
+        if (rigidbody_history_count(history)
+                >= rigidbody_history_capacity) {
             continue;
         }
         rigidbody_history_push(
@@ -944,10 +961,7 @@ $r e_update[-800](
 ) {
     if (!presented.valid)
         continue;
-    if (!presented.visible) {
-        e.remove<c_textured_sprite>();
-        continue;
-    }
+    sprite.visible = presented.visible ? 1u : 0u;
     sprite.position = presented.body.position;
     sprite.rotation = presented.body.rotation;
     sprite.stable_id = e.stable_id();
@@ -959,10 +973,9 @@ $r e_update[-800](
 ) {
     if (!presented.valid)
         continue;
+    quad.visible = presented.visible ? 1u : 0u;
     quad.position = presented.body.position;
     quad.rotation = presented.body.rotation;
-    if (!presented.visible)
-        e.remove<c_colored_quad>();
 };
 
 $r e_update[-800](
@@ -975,7 +988,7 @@ $r e_update[-800](
     sprite.stable_id = e.stable_id();
 };
 
-$r g_update[1000] {
+$r g_update[900] {
     const auto toggle =
         input_button("debug_overlay");
     if (toggle.pressed)
@@ -985,17 +998,27 @@ $r g_update[1000] {
 
 $r e_update[1000](
     const c_rigid_body& body,
-    const c_aabb& bounds
+    const c_aabb& bounds,
+    optional read c_presented_motion presented,
+    optional read c_render_motion_presentation presentation
 ) {
     if (!g_debug_overlay_enabled)
         continue;
     vec2 visual_position{};
     float visual_rotation = 0.0f;
-    const auto* presented =
-        e.try_get<c_presented_motion>();
-    if (presented && presented->valid) {
-        if (!presented->visible)
-            continue;
+    if (presented && presented->valid && !presented->visible)
+        continue;
+    // The collider overlay intentionally shows the raw segment boundary,
+    // rather than the smoothly presented body. It therefore holds at one
+    // anchor and advances to the next when the presentation segment changes.
+    if (presentation && presentation->initialized
+            && (!presented
+                || !presented->valid
+                || presented->endpoint_kind
+                    == motion_endpoint_kind::none)) {
+        visual_position = presentation->current.position;
+        visual_rotation = presentation->current.rotation;
+    } else if (presented && presented->valid) {
         visual_position = presented->body.position;
         visual_rotation = presented->body.rotation;
     } else if (const auto* sprite =
@@ -1023,50 +1046,8 @@ $r e_update[1000](
             const vec4& color, float rotation = 0.0f) {
             draw<c_debug_wireframe>({
             position, box_size, rotation, color, 0.0f
-        });
+        }, 32766);
     };
-    const auto timing = presentation_timing();
-    if (timing.valid) {
-        if (const auto* presentation =
-                e.try_get<c_render_motion_presentation>()) {
-            debug_motion_anchor_segment anchors{};
-            if (debug_motion_anchors_for_segment(
-                    *presentation,
-                    e.try_get<c_motion_breakpoint_history>(),
-                    presented && presented->valid
-                        ? presented->sample_tick
-                        : timing.presentation_tick,
-                    anchors)) {
-                constexpr vec4 path_color{
-                    0.25f, 0.9f, 1.0f, 1.0f
-                };
-                constexpr vec4 start_color{
-                    0.1f, 1.0f, 0.45f, 1.0f
-                };
-                constexpr vec4 end_color{
-                    1.0f, 0.25f, 0.35f, 1.0f
-                };
-                for (uint32_t index = 1u;
-                        index < anchors.count; ++index) {
-                    const vec2 start = anchors.points[index - 1u];
-                    const vec2 end = anchors.points[index];
-                    const float dx = end.x - start.x;
-                    const float dy = end.y - start.y;
-                    if (dx * dx + dy * dy > 0.00000001f) {
-                        draw<c_debug_line>({
-                            start, end, path_color, 0.0f
-                        });
-                    }
-                }
-                for (uint32_t index = 0u;
-                        index < anchors.count; ++index) {
-                    draw_outline(
-                        anchors.points[index],
-                        index == 0u ? start_color : end_color);
-                }
-            }
-        }
-    }
     draw_outline(
         {
             visual_position.x + rotated_offset.x,
@@ -1074,4 +1055,40 @@ $r e_update[1000](
         },
         {1.0f, 0.8f, 0.2f, 1.0f},
         visual_rotation);
+};
+
+$r e_update[1000](
+    const c_render_motion_presentation& presentation,
+    const c_presented_motion& presented,
+    optional read c_motion_breakpoint_history breakpoints,
+    optional read c_aabb bounds
+) {
+    if (!g_debug_overlay_enabled || !presented.valid)
+        continue;
+    debug_motion_anchor_segment anchors{};
+    if (!debug_motion_anchors_for_segment(
+            presentation, breakpoints, presented.sample_tick, anchors))
+        continue;
+    const vec2 marker_size = bounds
+        ? bounds->half_size * 2.0f
+        : vec2{0.12f, 0.12f};
+    const auto draw_marker = [&](const vec2& position,
+            const vec4& color) {
+        draw<c_debug_wireframe>({
+            position, marker_size, 0.0f, color, 0.0f
+        }, 32767);
+    };
+    constexpr vec4 path_color{0.25f, 0.9f, 1.0f, 1.0f};
+    constexpr vec4 start_color{0.1f, 1.0f, 0.45f, 1.0f};
+    constexpr vec4 end_color{1.0f, 0.25f, 0.35f, 1.0f};
+    for (uint32_t index = 1u; index < anchors.count; ++index) {
+        const vec2 start = anchors.points[index - 1u];
+        const vec2 end = anchors.points[index];
+        const vec2 delta = end - start;
+        if (dot(delta, delta) > 0.00000001f)
+            draw<c_debug_line>({start, end, path_color, 0.0f}, 32767);
+    }
+    for (uint32_t index = 0u; index < anchors.count; ++index)
+        draw_marker(anchors.points[index],
+            index == 0u ? start_color : end_color);
 };

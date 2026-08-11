@@ -421,6 +421,12 @@ public:
                 prefab_traits<EntityType>::id));
     }
 
+    template <typename EntityType>
+    bool spawn(entity& result) const {
+        result = spawn<EntityType>();
+        return static_cast<bool>(result);
+    }
+
     template <typename EntityType, typename Initialize>
     entity spawn(Initialize&& initialize) const {
         if (!content_ || !content_->engine
@@ -441,7 +447,7 @@ public:
                 *static_cast<State*>(user_data)->initialize;
             entity value{*context, entity_value};
             if constexpr (std::is_same_v<
-                    std::invoke_result_t<InitializeType&, entity>, bool>) {
+                    std::invoke_result_t<InitializeType&, entity&>, bool>) {
                 return std::invoke(function, value) ? 1 : 0;
             } else {
                 std::invoke(function, value);
@@ -454,6 +460,12 @@ public:
                 content_->engine_context, content_->world,
                 prefab_traits<EntityType>::id,
                 trampoline, &state));
+    }
+
+    template <typename EntityType, typename Initialize>
+    bool spawn(entity& result, Initialize&& initialize) const {
+        result = spawn<EntityType>(std::forward<Initialize>(initialize));
+        return static_cast<bool>(result);
     }
 
     entity from_stable_id(std::uint64_t stable_id) const {

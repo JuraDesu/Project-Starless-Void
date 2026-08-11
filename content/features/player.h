@@ -28,7 +28,7 @@ $cr p_player {
         {0.0f, 0.0f}, {0.315f, 0.315f}
     };
     c c_collider {
-        2u, 1u, true, true
+        collision_enemy, collision_friendly, true, true
     };
     c c_player_inventory {};
     c c_player_weapon {};
@@ -41,7 +41,7 @@ $cr p_player {
     r c_presented_motion {};
 };
 
-inline entity spawn_inventory_projectile(
+inline bool spawn_inventory_projectile(
         const World& world,
         uint64_t owner,
         const vec2& origin,
@@ -56,7 +56,8 @@ inline entity spawn_inventory_projectile(
         velocity * speed,
         0.0f
     };
-    return world.spawn<p_inst>([&](entity spawned) {
+    entity spawned;
+    return world.spawn<p_inst>(spawned, [&](entity& spawned) {
         spawned.set<c_rigid_body>(projectile_body);
         spawned.set<c_inst_source>({speed, lifetime, owner});
         spawned.set<c_projectile>({lifetime});
@@ -133,10 +134,10 @@ $c e_update[-500](
                 bool spawned_any = false;
                 constexpr int shot_count = 1;
                 for (uint32_t shot = 0; shot < shot_count; ++shot) {
-                    entity projectile = spawn_inventory_projectile(
+                    const bool projectile = spawn_inventory_projectile(
                         world, e.stable_id(), origin,
                         aim_angle, projectile_speed, 2.0f, inventory);
-                    spawned_any = spawned_any || static_cast<bool>(projectile);
+                    spawned_any = spawned_any || projectile;
                 }
                 if (spawned_any) weapon.cooldown_ticks = 2;
             }

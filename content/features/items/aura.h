@@ -115,7 +115,7 @@ $c e_update[-500](
                 || !target.has<c_collider>())
             return true;
         const auto& collider = target.get<c_collider>();
-        if ((collider.type_bits & collision_enemy) == 0u) return true;
+        if (!collider_has_type(collider, collision_enemy)) return true;
         auto& health = target.get_mut<c_health>();
         health.current = max(health.current - damage, 0);
         return true;

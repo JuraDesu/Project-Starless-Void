@@ -79,7 +79,7 @@ inline float scale_particle_spawn_budget(float raw_budget) {
 }
 
 $r g_update[-1000] {
-    const auto timing = presentation_timing(context);
+    const auto timing = presentation_timing();
     if (!timing.valid) {
         reset_particle_state();
         continue;

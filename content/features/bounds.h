@@ -1,6 +1,6 @@
 box bounds = {{0.0f, 0.0f}, {30.0f, 40.0f}};
 vec2 bounds_center = bounds.center();
-$c e_update(c_aabb& aabb, c_rigid_body& rb, c_collider& col){
+$c e_update(c_aabb& aabb, c_rigid_body& rb, c_player& player, c_collider& col){
     (void)aabb;
     (void)col;
     if (!bounds.intersects(rb.position)) {
@@ -43,7 +43,7 @@ $r e_add(const c_presented_motion& motion, c_bounds bounds) {
 };
 
 /*$r g_update[-1100] {
-    const WheelState wheel = input_wheel(context);
+    const WheelState wheel = input_wheel();
     if (wheel.valid && wheel.y != 0.0f) {
         const float next = g_camera_zoom * std::pow(1.15f, wheel.y);
         if (camera_zoom(next)) g_camera_zoom = next;
@@ -51,7 +51,7 @@ $r e_add(const c_presented_motion& motion, c_bounds bounds) {
 };*/
 
 $r g_update[1000] {
-    draw<c_debug_wireframe>(context, {
+    draw<c_debug_wireframe>({
         bounds_center,
         bounds.bounds,
         0.0f,

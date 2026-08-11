@@ -167,7 +167,6 @@ inline vec2 normalized_or(
 }
 
 inline void spawn_projectile_burst(
-        const EngineContentCallContext& context,
         uint64_t stable_id,
         const c_presented_motion& presented,
         const vec2& motion_velocity,
@@ -204,7 +203,6 @@ inline void spawn_projectile_burst(
         const vec2 end_size{size * end_scale, size * end_scale};
         const vec4 end_color{0.10f, 0.45f, 1.0f, 0.0f};
         particles::spawn<projectile_spark_particle>(
-            context,
             {
                 {direction.x * speed, direction.y * speed},
                 particle_random_signed(random) * 5.0f,
@@ -227,15 +225,15 @@ $c e_hit[2000](c_hit_feedback_history& history) {
     entity target = world.from_stable_id(event.target);
     const auto* health = target.try_get<c_health>();
     append_hit_feedback(
-        history, context.tick, event.toi, event.target, event.point,
+        history, tick, event.toi, event.target, event.point,
         health && health->current <= 0,
-        particle_hash(e.stable_id() ^ event.target ^ context.tick));
+        particle_hash(e.stable_id() ^ event.target ^ tick));
 };
 
 $r e_present_shot(const c_inst& inst) {
     (void)inst;
     play_spatial_audio(
-        context, audio_fx, event.position.x, event.position.y,
+        audio_fx, event.position.x, event.position.y,
         0.45f);
     c_presented_motion presented{};
     presented.body.position = event.position;
@@ -243,14 +241,13 @@ $r e_present_shot(const c_inst& inst) {
     presented.sample_tick = 0.0;
     presented.endpoint_kind = motion_endpoint_kind::spawn;
     spawn_projectile_burst(
-        context, event.projectile, presented, presented.body.velocity,
+        event.projectile, presented, presented.body.velocity,
         10u, 0.11f, 0.16f, 0.09f, false);
 };
 
 $r e_present_hit(const c_inst& inst) {
     (void)inst;
     play_spatial_audio(
-        context,
         audio_fx,
         event.position.x, event.position.y, 0.75f);
 };
@@ -262,12 +259,11 @@ $r e_present_hit[10](const c_inst& inst) {
     presented.sample_tick = 0.0;
     presented.endpoint_kind = motion_endpoint_kind::hide;
     spawn_projectile_burst(
-        context, event.projectile, presented, {},
+        event.projectile, presented, {},
         9u, 0.12f, 0.20f, 0.11f, true);
 };
 
 inline void emit_projectile_trail(
-        const EngineContentCallContext& context,
         projectile_emitter_state& emitter,
         const vec2& position,
         const vec2& velocity,
@@ -310,7 +306,6 @@ inline void emit_projectile_trail(
             normalized_or({-velocity.x, -velocity.y},
                 {-direction.x, -direction.y});
         particles::spawn<projectile_trail_particle>(
-            context,
             {
                 {backwards.x * 0.6f, backwards.y * 0.6f},
                 particle_random_signed(random) * 3.0f,
@@ -356,7 +351,7 @@ $r e_update[-700](
             e_present_hit hit{
                 stable_id, entry.target, entry.position,
                 entry.target_destroyed, entry.seed};
-            dispatch(context, e, hit);
+            dispatch(e, hit);
             hit_feedback_cursor.consumed_serial = entry.serial;
         }
         if (presented.endpoint_kind == motion_endpoint_kind::spawn) {
@@ -364,11 +359,11 @@ $r e_update[-700](
                 stable_id, presented.body.position,
                 presented.body.rotation,
                 particle_hash(stable_id ^ g_particle_frame)};
-            dispatch(context, e, shot);
+            dispatch(e, shot);
         }
         if (presented.visible) {
             emit_projectile_trail(
-                context, state, presented.body.position,
+                state, presented.body.position,
                 presented.body.velocity, stable_id);
         } else {
             state.trail_initialized = false;

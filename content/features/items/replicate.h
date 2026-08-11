@@ -36,7 +36,7 @@ $c e_hit(
         child.set<c_projectile_previous>({origin});
         child.set<c_inst_homing>({8.0f, event.target});
         child.set<c_knockback_on_hit>({0.325f});
-        append_spawn_motion_breakpoint(child, context.tick, child_body);
+        append_spawn_motion_breakpoint(child, tick, child_body);
     });
 };
 

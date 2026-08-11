@@ -127,7 +127,6 @@ inline ui_measurement measure_ui_stream(
 }
 
 inline void draw_glyph(
-        const EngineContentCallContext& context,
         const GeneratedFontInfo& font,
         const GeneratedFontGlyph& glyph,
         float x, float baseline_y, float pixels,
@@ -157,11 +156,10 @@ inline void draw_glyph(
         },
         color, font.id, 0.0f
     };
-    draw(context, instance, 1000);
+    draw(instance, 1000);
 }
 
 inline void render_ui_stream(
-        const EngineContentCallContext& context,
         const ui_stream& stream,
         const ViewState& view,
         float origin_x_pixels,
@@ -188,8 +186,8 @@ inline void render_ui_stream(
         }
         if (token.type == ui_token::kind::icon) {
             if (token.icon.component && !token.icon.bytes.empty())
-                context.engine->submit_render_instances(
-                    context.engine_context, token.icon.component,
+                draw_instances(
+                    token.icon.component,
                     token.icon.bytes.data(), token.icon.stride, 1u, 950);
             x += token.icon.width_pixels;
             continue;
@@ -205,8 +203,8 @@ inline void render_ui_stream(
             const GeneratedFontGlyph& glyph = font.glyphs[
                 character - GENERATED_FONT_FIRST_CODEPOINT];
             if (glyph.present) {
-                draw_glyph(
-                    context, font, glyph, x, y + pixels,
+                    draw_glyph(
+                        font, glyph, x, y + pixels,
                     pixels, view, color);
             }
             x += glyph.advance * pixels;
@@ -226,15 +224,14 @@ inline vec2 pixel_to_world(
 }
 
 inline void draw_item_tooltip(
-        const EngineContentCallContext& context,
         entity item,
         const ViewState& view) {
     e_item_visual visual{};
     ui_stream description;
     e_item_hover hover{&description};
-    if (!dispatch(context, item, visual)
+    if (!dispatch(item, visual)
             || !visual.valid || !visual.name
-            || !dispatch(context, item, hover))
+            || !dispatch(item, hover))
         return;
 
     ui_stream content;
@@ -274,7 +271,7 @@ inline void draw_item_tooltip(
     const vec2 panel_center = pixel_to_world(
         view, panel_x + panel_width * 0.5f,
         panel_y + panel_height * 0.5f);
-    draw<c_colored_quad>(context, {
+    draw<c_colored_quad>({
         panel_center,
         {panel_width * view.world_per_pixel(),
          panel_height * view.world_per_pixel()},
@@ -290,17 +287,17 @@ inline void draw_item_tooltip(
         icon_pixels * view.world_per_pixel()};
     icon.rotation = 0.0f;
     icon.depth = 0.0f;
-    draw(context, icon, 950);
+    draw(icon, 950);
     render_ui_stream(
-        context, content, view,
+        content, view,
         panel_x + padding * 2.0f + icon_pixels,
         panel_y + padding);
 }
 
 
 $r g_update[1000] {
-    const auto view = view_state(context);
-    const auto cursor = input_cursor(context);
+    const auto view = view_state();
+    const auto cursor = input_cursor();
     if (view && view.focused
             && view.cursor_valid && cursor.valid) {
         entity hovered{};
@@ -334,6 +331,6 @@ $r g_update[1000] {
         return true;
         });
         if (hovered)
-            draw_item_tooltip(context, hovered, view);
+            draw_item_tooltip(hovered, view);
     }
 };

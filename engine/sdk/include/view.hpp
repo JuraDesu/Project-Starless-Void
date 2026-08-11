@@ -1,6 +1,7 @@
 #pragma once
 
 #include "content_api.h"
+#include "callback.hpp"
 
 
 struct ViewState {
@@ -24,10 +25,11 @@ struct ViewState {
     }
 };
 
-inline ViewState view_state(const EngineContentCallContext& context) {
+inline ViewState view_state() {
+    const auto* context = active_callback_context();
     EngineViewState raw{{sizeof(EngineViewState)}};
-    if (!context.engine || !context.engine->view_state
-            || !context.engine->view_state(context.engine_context, &raw))
+    if (!context || !context->engine || !context->engine->view_state
+            || !context->engine->view_state(context->engine_context, &raw))
         return {};
     return {
         raw.canvas_width, raw.canvas_height,

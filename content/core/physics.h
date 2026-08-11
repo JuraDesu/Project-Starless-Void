@@ -158,7 +158,7 @@ inline void erase_spatial(c_spatial_partition& member) {
 }
 
 inline void refresh_spatial(
-        const EngineContentCallContext& context, entity_id stable_id,
+        entity_id stable_id,
         const c_rigid_body& body, const c_aabb& bounds,
         c_spatial_partition& member) {
     reset_spatial_if_needed();
@@ -290,6 +290,5 @@ $c e_update[100](
     c_spatial_partition& spatial
 ) {
     (void)collider;
-    refresh_spatial(
-        context, e.stable_id(), body, bounds, spatial);
+    refresh_spatial(e.stable_id(), body, bounds, spatial);
 };

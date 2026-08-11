@@ -73,7 +73,6 @@ $compute burning_particle {
 
 
 inline void emit_burning_particles(
-        const EngineContentCallContext& context,
         fire_emitter_state& emitter,
         const vec2& position,
         float dt_seconds,
@@ -93,7 +92,7 @@ inline void emit_burning_particles(
         const vec2 end_size{0.01f, 0.01f};
         const vec4 start_color{1.0f, 1.0f, 0.0f, 1.0f};
         const vec4 end_color{1.0f, 0.0f, 0.0f, 0.0f};
-        particles::spawn<burning_particle>(context, {
+        particles::spawn<burning_particle>({
             {std::cos(angle) * speed, std::sin(angle) * speed},
             particle_random_signed(random) * 4.0f,
             duration, duration, start_size, end_size, start_color, end_color
@@ -126,6 +125,6 @@ $r e_update[-700](
         position = sprite->position;
     }
     emit_burning_particles(
-        context, *emitter, position, g_particle_dt_seconds, stable_id);
+        *emitter, position, g_particle_dt_seconds, stable_id);
     g_fire_emitters.prune(g_particle_frame);
 };

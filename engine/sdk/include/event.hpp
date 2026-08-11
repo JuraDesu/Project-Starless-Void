@@ -16,18 +16,19 @@ constexpr std::uint64_t event_fingerprint(const char* value) {
 }
 
 template <typename Event>
-bool dispatch(
-        const EngineContentCallContext& context,
-        entity subject,
-        Event& event) {
+bool dispatch(entity subject, Event& event) {
+    const auto* context = active_callback_context();
     const EngineEventId id = event_traits<Event>::id;
-    return id && context.engine && context.engine->dispatch_event && subject.alive()
-        && context.engine->dispatch_event(
-            context.engine_context, context.world, id, subject.id(),
+    return id && context && context->engine && context->engine->dispatch_event
+        && subject.alive()
+        && subject.call_context()
+        && active_callback_matches(*subject.call_context())
+        && context->engine->dispatch_event(
+            context->engine_context, context->world, id, subject.id(),
             &event, static_cast<std::uint32_t>(sizeof(Event))) != 0;
 }
 
 template <typename Event>
 bool entity::dispatch(Event& event) const {
-    return content_ && dispatch(*content_, *this, event);
+    return dispatch(*this, event);
 }

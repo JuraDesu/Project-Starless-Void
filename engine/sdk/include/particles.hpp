@@ -1,6 +1,7 @@
 #pragma once
 
 #include "content_api.h"
+#include "callback.hpp"
 
 #include <cstdint>
 #include <type_traits>
@@ -13,7 +14,6 @@ namespace particles {
 
 template <typename Compute>
 bool spawn_many(
-        const EngineContentCallContext& context,
         const typename compute_traits<Compute>::state* states,
         const typename compute_traits<Compute>::instance* instances,
         std::uint32_t count) {
@@ -27,18 +27,18 @@ bool spawn_many(
     static_assert(sizeof(instance) == traits::instance_size);
     if (!count)
         return true;
-    return context.engine && context.engine->submit_compute_spawns
-        && context.engine->submit_compute_spawns(
-            context.engine_context, traits::id,
+    const auto* context = active_callback_context();
+    return context && context->engine && context->engine->submit_compute_spawns
+        && context->engine->submit_compute_spawns(
+            context->engine_context, traits::id,
             states, sizeof(state), instances, sizeof(instance), count) != 0;
 }
 
 template <typename Compute>
 bool spawn(
-        const EngineContentCallContext& context,
         const typename compute_traits<Compute>::state& state,
         const typename compute_traits<Compute>::instance& instance) {
-    return spawn_many<Compute>(context, &state, &instance, 1u);
+    return spawn_many<Compute>(&state, &instance, 1u);
 }
 
 } // namespace particles

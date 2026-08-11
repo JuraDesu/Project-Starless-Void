@@ -1,22 +1,8 @@
 #pragma once
 
 #include "content_api.h"
+#include "callback.hpp"
 #include "ecs.hpp"
-
-
-inline thread_local const EngineContentCallContext* g_camera_call_context = nullptr;
-
-class camera_callback_scope {
-public:
-    explicit camera_callback_scope(const EngineContentCallContext& context)
-        : previous_(g_camera_call_context) {
-        g_camera_call_context = &context;
-    }
-    ~camera_callback_scope() { g_camera_call_context = previous_; }
-
-private:
-    const EngineContentCallContext* previous_{};
-};
 
 template <typename PresentedMotion>
 inline bool camera_follow_presented(
@@ -28,15 +14,16 @@ inline bool camera_follow_presented(
     EngineCameraFollowDesc desc{
         {sizeof(EngineCameraFollowDesc)}, value.id(), component,
         position_offset, valid_offset, visible_offset};
-    return context && g_camera_call_context == context
+    return context && active_callback_matches(*context)
         && context->engine && context->engine->camera_follow_entity
         && context->engine->camera_follow_entity(
             context->engine_context, context->world, &desc) != 0;
 }
 
 inline bool camera_zoom(float zoom) {
-    return g_camera_call_context && g_camera_call_context->engine
-        && g_camera_call_context->engine->camera_zoom
-        && g_camera_call_context->engine->camera_zoom(
-            g_camera_call_context->engine_context, zoom) != 0;
+    const auto* context = active_callback_context();
+    return context && context->engine
+        && context->engine->camera_zoom
+        && context->engine->camera_zoom(
+            context->engine_context, zoom) != 0;
 }

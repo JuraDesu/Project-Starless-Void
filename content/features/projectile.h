@@ -211,7 +211,7 @@ $c e_update[200](
                 max(budget.remaining, 0)),
             true, false, false
         };
-        if (!dispatch(context, e, hit)) {
+        if (!dispatch(e, hit)) {
             break;
         }
         entity target = world.from_stable_id(contact.stable_id);

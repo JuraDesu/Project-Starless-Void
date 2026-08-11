@@ -90,7 +90,7 @@ $c e_update[-500](
     const vec2 origin = body.position + bounds.offset
         + direction * (bounds.half_size.x + 0.14f);
     spawn_inventory_projectile(
-        context, world, e.stable_id(), origin, angle,
+        world, e.stable_id(), origin, angle,
         max(automatic.speed, 0.1f),
         max(automatic.lifetime, 1.0f / 60.0f), inventory);
 };

@@ -3,6 +3,7 @@
 #include <initializer_list>
 
 #include "content_api.h"
+#include "callback.hpp"
 
 
 enum class Key : uint32_t {
@@ -104,19 +105,20 @@ private:
     bool ok_{true};
 };
 
-inline ButtonState input_button(
-        const EngineContentCallContext& context, const char* name) {
+inline ButtonState input_button(const char* name) {
+    const auto* context = active_callback_context();
     EngineInputButtonState state{};
-    const bool valid = context.engine && context.engine->input_button
-        && context.engine->input_button(context.engine_context, name, &state);
+    const bool valid = context && context->engine && context->engine->input_button
+        && context->engine->input_button(context->engine_context, name, &state);
     return {valid, state.down != 0, state.pressed != 0, state.released != 0};
 }
 
-inline CursorState input_cursor(const EngineContentCallContext& context) {
+inline CursorState input_cursor() {
+    const auto* context = active_callback_context();
     EngineCursorState state{};
     state.header = {sizeof(EngineCursorState)};
-    const bool queried = context.engine && context.engine->input_cursor
-        && context.engine->input_cursor(context.engine_context, &state);
+    const bool queried = context && context->engine && context->engine->input_cursor
+        && context->engine->input_cursor(context->engine_context, &state);
     return {
         queried && state.valid != 0,
         state.world_x,
@@ -130,10 +132,11 @@ inline CursorState input_cursor(const EngineContentCallContext& context) {
     };
 }
 
-inline WheelState input_wheel(const EngineContentCallContext& context) {
+inline WheelState input_wheel() {
+    const auto* context = active_callback_context();
     EngineWheelState state{};
     state.header = {sizeof(EngineWheelState)};
-    const bool queried = context.engine && context.engine->input_wheel
-        && context.engine->input_wheel(context.engine_context, &state);
+    const bool queried = context && context->engine && context->engine->input_wheel
+        && context->engine->input_wheel(context->engine_context, &state);
     return {queried && state.valid != 0, state.y};
 }

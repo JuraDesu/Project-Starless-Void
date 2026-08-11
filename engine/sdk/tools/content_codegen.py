@@ -2973,6 +2973,7 @@ def render_header(module: Module, dependencies: dict[str, dict]) -> str:
     lines = [
         "#pragma once", '#include "content_types.h"',
         '#include "ecs.hpp"', '#include "event.hpp"', '#include "particles.hpp"',
+        '#include "callback.hpp"',
         '#include "box.hpp"',
         '#include "camera.hpp"',
         '#include "print.hpp"',
@@ -3975,14 +3976,14 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
             f"{'invocation->count' if system.terms else '1u'}; ++i) {{",
             "            const uint64 tick = invocation->context.tick;",
             "            const float dt = (float)invocation->context.delta_time;",
-            "            const EngineContentCallContext& context = invocation->context;",
-            "            camera_callback_scope camera_scope{context};",
-            "            World world{context};",
-            "            (void)world; (void)tick; (void)dt; (void)context;",
+            "            const EngineContentCallContext& callback_context_internal = invocation->context;",
+            "            active_callback_scope callback_scope{callback_context_internal};",
+            "            World world{callback_context_internal};",
+            "            (void)world; (void)tick; (void)dt;",
         ])
         if not system.global_hook:
             lines.extend([
-                "            entity_handle e{context, invocation->count ? invocation->entities[i] : 0u};",
+                "            entity_handle e{callback_context_internal, invocation->count ? invocation->entities[i] : 0u};",
                 "            (void)e;",
             ])
         for index, term in enumerate(system.terms):
@@ -4012,7 +4013,7 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
                     f"static_cast<{const}{type_name}*>(invocation->columns[{index}].data)[i];")
             if term.pair_wildcard:
                 lines.append(
-                    f"            entity {term.variable}_target{{context, "
+                    f"            entity {term.variable}_target{{callback_context_internal, "
                     f"invocation->columns[{index}].pair_target}};")
         lines.extend([f"            {system.body}", "        }", "        return 1;", "    }"])
     lines.extend(["    default: return 0;", "    }", "}"])
@@ -4051,11 +4052,13 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
                 ])
         lines.extend([
             "        for (uint32_t i = 0; i < invocation->count; ++i) {",
-            "            const EngineContentCallContext& context = invocation->context;",
-            "            camera_callback_scope camera_scope{context};",
-            "            entity_handle e{context, invocation->entities[i]};",
-            "            World world{context};",
-            "            (void)e; (void)world; (void)context;",
+            "            const EngineContentCallContext& callback_context_internal = invocation->context;",
+            "            active_callback_scope callback_scope{callback_context_internal};",
+            "            const uint64 tick = callback_context_internal.tick;",
+            "            const float dt = (float)callback_context_internal.delta_time;",
+            "            entity_handle e{callback_context_internal, invocation->entities[i]};",
+            "            World world{callback_context_internal};",
+            "            (void)e; (void)world;",
         ])
         for index, term in enumerate(observer.terms):
             if term.match == "exclude":
@@ -4084,7 +4087,7 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
                     f"static_cast<{const}{type_name}*>(invocation->columns[{index}].data)[i];")
             if term.pair_wildcard:
                 lines.append(
-                    f"            entity {term.variable}_target{{context, "
+                    f"            entity {term.variable}_target{{callback_context_internal, "
                     f"invocation->columns[{index}].pair_target}};")
         lines.extend([f"            {observer.body}", "        }", "        return 1;", "    }"])
     lines.extend(["    default: return 0;", "    }", "}", ""])
@@ -4093,9 +4096,10 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
         'EngineContentCallContext* invocation) {',
         "    if (!invocation || !g_api) return 0;",
         "    if (invocation->world != side) return 0;",
-        "    const EngineContentCallContext& context = *invocation;",
-        "    World world{context};",
-        "    (void)world; (void)context;",
+        "    const EngineContentCallContext& callback_context_internal = *invocation;",
+        "    active_callback_scope callback_scope{callback_context_internal};",
+        "    World world{callback_context_internal};",
+        "    (void)world;",
     ])
     for handler in module.start_handlers:
         lines.extend([

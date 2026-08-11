@@ -1,6 +1,7 @@
 #pragma once
 
 #include "content_api.h"
+#include "callback.hpp"
 
 #include <array>
 #include <cstdint>
@@ -64,9 +65,10 @@ using exclude = query_term<Component, ACCESS_READ, MATCH_EXCLUDE>;
 
 class World;
 
-inline bool reset_game(const EngineContentCallContext& context) {
-    return context.engine && context.engine->reset_game
-        && context.engine->reset_game(context.engine_context) != 0;
+inline bool reset_game() {
+    const auto* context = active_callback_context();
+    return context && context->engine && context->engine->reset_game
+        && context->engine->reset_game(context->engine_context) != 0;
 }
 
 class entity {

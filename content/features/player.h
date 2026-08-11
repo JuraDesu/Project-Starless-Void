@@ -58,7 +58,6 @@ $cr p_player {
 };
 
 inline entity spawn_inventory_projectile(
-        const EngineContentCallContext& context,
         const World& world,
         uint64_t owner,
         const vec2& origin,
@@ -86,13 +85,13 @@ inline entity spawn_inventory_projectile(
             entity item =
                 world.from_stable_id(inventory.item_ids[index]);
             if (item) {
-                dispatch(context, item, apply);
+                dispatch(item, apply);
             }
         }
         spawned.set<c_inst_damage>({1 + apply.damage_bonus});
         spawned.set<c_inst_hit_budget>({1 + apply.additional_hits});
         append_spawn_motion_breakpoint(
-            spawned, context.tick, spawned.get<c_rigid_body>());
+            spawned, active_callback_tick(), spawned.get<c_rigid_body>());
     });
 }
 
@@ -104,11 +103,11 @@ $c e_update[-500](
     c_player_weapon& weapon
 ) {
     (void)player;
-    const auto cursor = input_cursor(context);
-    const auto up = input_button(context, "move_up");
-    const auto down = input_button(context, "move_down");
-    const auto left = input_button(context, "move_left");
-    const auto right = input_button(context, "move_right");
+    const auto cursor = input_cursor();
+    const auto up = input_button("move_up");
+    const auto down = input_button("move_down");
+    const auto left = input_button("move_left");
+    const auto right = input_button("move_right");
     if (up.valid && down.valid && left.valid && right.valid) {
         vec2 movement{
             (right.down ? 1.0f : 0.0f) - (left.down ? 1.0f : 0.0f),
@@ -142,7 +141,7 @@ $c e_update[-500](
                 constexpr int shot_count = 1;
                 for (uint32_t shot = 0; shot < shot_count; ++shot) {
                     entity projectile = spawn_inventory_projectile(
-                        context, world, e.stable_id(), origin,
+                        world, e.stable_id(), origin,
                         aim_angle, projectile_speed, 2.0f, inventory);
                     spawned_any = spawned_any || static_cast<bool>(projectile);
                 }

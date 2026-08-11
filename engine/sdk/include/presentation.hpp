@@ -1,6 +1,7 @@
 #pragma once
 
 #include "content_api.h"
+#include "callback.hpp"
 
 
 struct PresentationTiming {
@@ -12,12 +13,13 @@ struct PresentationTiming {
     float tick_seconds{};
 };
 
-inline PresentationTiming presentation_timing(
-        const EngineContentCallContext& context) {
+inline PresentationTiming presentation_timing() {
+    const auto* context = active_callback_context();
     EnginePresentationTiming timing{};
     timing.header = {sizeof(EnginePresentationTiming)};
-    const bool queried = context.engine && context.engine->presentation_timing
-        && context.engine->presentation_timing(context.engine_context, &timing);
+    const bool queried = context && context->engine
+        && context->engine->presentation_timing
+        && context->engine->presentation_timing(context->engine_context, &timing);
     return {
         queried && timing.valid != 0u,
         timing.latest_simulation_tick,

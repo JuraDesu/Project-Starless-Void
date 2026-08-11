@@ -950,8 +950,7 @@ $r e_update[-800](
     }
     sprite.position = presented.body.position;
     sprite.rotation = presented.body.rotation;
-    sprite.stable_id = context.engine->entity_stable_id(
-        context.engine_context, context.world, e.id());
+    sprite.stable_id = e.stable_id();
 };
 
 $r e_update[-800](
@@ -973,13 +972,12 @@ $r e_update[-800](
 ) {
     sprite.position = body.position;
     sprite.rotation = body.rotation;
-    sprite.stable_id = context.engine->entity_stable_id(
-        context.engine_context, context.world, e.id());
+    sprite.stable_id = e.stable_id();
 };
 
 $r g_update[1000] {
     const auto toggle =
-        input_button(context, "debug_overlay");
+        input_button("debug_overlay");
     if (toggle.pressed)
         g_debug_overlay_enabled =
             !g_debug_overlay_enabled;
@@ -1024,11 +1022,11 @@ $r e_update[1000](
     };
     const auto draw_outline = [&](const vec2& position,
             const vec4& color, float rotation = 0.0f) {
-        draw<c_debug_wireframe>(context, {
+            draw<c_debug_wireframe>({
             position, box_size, rotation, color, 0.0f
         });
     };
-    const auto timing = presentation_timing(context);
+    const auto timing = presentation_timing();
     if (timing.valid) {
         if (const auto* presentation =
                 e.try_get<c_render_motion_presentation>()) {
@@ -1056,7 +1054,7 @@ $r e_update[1000](
                     const float dx = end.x - start.x;
                     const float dy = end.y - start.y;
                     if (dx * dx + dy * dy > 0.00000001f) {
-                        draw<c_debug_line>(context, {
+                        draw<c_debug_line>({
                             start, end, path_color, 0.0f
                         });
                     }

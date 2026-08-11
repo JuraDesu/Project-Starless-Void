@@ -30,7 +30,6 @@ $compute aura_particle {
 
 
 inline void emit_aura_particles(
-        const EngineContentCallContext& context,
         aura_emitter_state& emitter,
         const vec2& position,
         float radius,
@@ -61,7 +60,7 @@ inline void emit_aura_particles(
             1.0f - shaped * 0.2f, 0.4f - shaped * 0.3f,
             0.1f + shaped * 0.2f, 0.0f};
         const float speed = particle_random_01(random) * 3.0f;
-        particles::spawn<aura_particle>(context, {
+        particles::spawn<aura_particle>({
             direction * speed, particle_random_signed(random) * 2.0f,
             duration, duration, start_size, end_size, start_color, end_color
         }, {
@@ -139,7 +138,7 @@ $r e_update[-700](
     auto* emitter = entry ? &entry->state : nullptr;
     if (!emitter) continue;
     emit_aura_particles(
-        context, *emitter, presented.body.position,
+        *emitter, presented.body.position,
         aura.radius, g_particle_dt_seconds, stable_id);
     g_aura_emitters.prune(g_particle_frame);
 };

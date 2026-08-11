@@ -87,7 +87,7 @@ $c e_update[200](
             const uint64_t stable = item.stable_id();
             if (!stable) return true;
             e_item_pickup pickup{e};
-            dispatch(context, item, pickup);
+            dispatch(item, pickup);
             inventory.item_ids[inventory.count++] = stable;
             item.remove<c_ground_item>();
             item.remove<c_rigid_body>();
@@ -106,7 +106,7 @@ $r e_update[-800](
     (void)item;
     (void)ground;
     e_item_visual visual{};
-    if (dispatch(context, e, visual) && visual.valid) {
+    if (dispatch(e, visual) && visual.valid) {
         visual.icon.position = body.position;
         visual.icon.stable_id = e.stable_id();
         e.set<c_textured_sprite>(visual.icon);

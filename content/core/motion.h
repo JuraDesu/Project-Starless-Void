@@ -242,7 +242,7 @@ $r e_set(
     const c_rigid_body& body,
     c_rigidbody_sample_history& history
 ) {
-    const auto timing = presentation_timing(context);
+    const auto timing = presentation_timing();
     if (timing.latest_simulation_tick)
         rigidbody_history_push(
             history, timing.latest_simulation_tick, body);
@@ -264,7 +264,7 @@ $r e_update[-900](
     c_presented_motion& presented,
     optional read c_motion_breakpoint_history breakpoints
 ) {
-    const auto timing = presentation_timing(context);
+    const auto timing = presentation_timing();
     if (timing.valid) {
         rigidbody_history_push(
             history, timing.latest_simulation_tick, body);

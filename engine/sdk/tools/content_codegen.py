@@ -79,6 +79,25 @@ TYPE_INFO = {
     "uvec2": ("uvec2", 8, 4, None),
     "uvec3": ("uvec3", 12, 4, None),
     "uvec4": ("uvec4", 16, 4, None),
+    "breakpoint_time": ("breakpoint_time", 16, 8, None),
+}
+BUILTIN_COMPONENTS = {
+    "c_audio_source": {
+        "name": "c_audio_source",
+        "canonical": "builtin:c_audio_source",
+        "size": 1104,
+        "alignment": 8,
+        "residency": RESIDENCY["r"],
+        "authority": RESIDENCY["r"],
+        "replicated": False,
+        "kind": "component",
+        "shader": False,
+        "base": None,
+        "contract": [],
+        "contract_fingerprint": 1,
+        "fields": [],
+        "fingerprint": 0x8b3f4d1c29a5e701,
+    },
 }
 IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 REF_RE = re.compile(r"[a-z][a-z0-9_-]*:[A-Za-z_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*")
@@ -1465,6 +1484,8 @@ def cpp_name(canonical: str, current_content: str) -> str:
         content_id, name = canonical.split(":", 1)
     else:
         content_id, name = current_content, canonical
+    if name in BUILTIN_COMPONENTS:
+        return name
     return f"content_{name}"
 
 
@@ -2033,6 +2054,7 @@ def cpp_handle_tokens(source: CppSource) -> list[tuple[str | None, str, int]]:
 
 def validate_cpp_handles(module: Module, dependencies: dict[str, dict]) -> None:
     local_components = {item.name for item in module.components}
+    local_components.update(BUILTIN_COMPONENTS)
     local_entities = {item.name for item in module.entities}
     dependency_components = {
         dep_id: {item["name"] for item in document.get("components", [])}
@@ -2166,6 +2188,10 @@ def validate_cpp_handles(module: Module, dependencies: dict[str, dict]) -> None:
 
 
 def validate_module(module: Module, dependencies: dict[str, dict]) -> None:
+    for component in module.components:
+        if component.name in BUILTIN_COMPONENTS:
+            raise CodegenError(
+                f"{component.source}: {component.name} is an engine-defined component")
     for event in module.events:
         role_count = sum(
             1 for field in event.fields
@@ -2628,7 +2654,11 @@ def validate_module(module: Module, dependencies: dict[str, dict]) -> None:
             if len(component.shader.wgsl.encode("utf-8")) > 65536:
                 raise CodegenError(f"{component.source}: generated WGSL source exceeds 64 KiB")
 
-    all_components = dict(local_components)
+    all_components = {
+        **{record["canonical"]: record
+           for record in BUILTIN_COMPONENTS.values()},
+        **local_components,
+    }
     all_components.update({
         f"{module.content_id}:{name}": record for name, record in local_components.items()})
     for dep_id, document in dependencies.items():
@@ -2639,7 +2669,9 @@ def validate_module(module: Module, dependencies: dict[str, dict]) -> None:
             all_components[canonical] = record
 
     def resolve(reference: str, source: str) -> dict:
-        key = reference if ":" in reference else reference
+        key = ("builtin:" + reference
+               if reference in BUILTIN_COMPONENTS and ":" not in reference
+               else reference)
         if ":" in reference:
             dep_id = reference.split(":", 1)[0]
             if dep_id != module.content_id and dep_id not in dependencies:
@@ -2722,6 +2754,8 @@ def validate_module(module: Module, dependencies: dict[str, dict]) -> None:
     flattening: set[str] = set()
 
     def canonical_component(reference: str) -> str:
+        if ":" not in reference and reference in BUILTIN_COMPONENTS:
+            return "builtin:" + reference
         return reference if ":" in reference else f"{module.content_id}:{reference}"
 
     def flatten_entity(entity: Entity) -> list[EntityValue]:
@@ -3060,7 +3094,9 @@ def render_header(module: Module, dependencies: dict[str, dict]) -> str:
     lines = [
         "#pragma once", '#include "content_types.h"',
         '#include "ecs.hpp"', '#include "event.hpp"', '#include "particles.hpp"',
+        '#include "breakpoints.hpp"',
         '#include "callback.hpp"',
+        '#include "audio_source.hpp"',
         '#include "box.hpp"',
         '#include "camera.hpp"',
         '#include "print.hpp"',
@@ -3134,7 +3170,8 @@ def render_header(module: Module, dependencies: dict[str, dict]) -> str:
         lines.append("")
     component_records = [
         record for record in records
-        if record.get("kind") in {"component", "tag"}]
+        if record.get("kind") in {"component", "tag"}
+    ] + list(BUILTIN_COMPONENTS.values())
     event_records = [
         record for record in records if record.get("kind") == "event"]
     named_type_records = [
@@ -3649,6 +3686,8 @@ def build_compute_wgsl(compute: Compute, instance: Component | dict) -> str:
 
 
 def component_id_expression(reference: str, current_content: str) -> str:
+    if reference == "c_audio_source" or reference == "builtin:c_audio_source":
+        return "component_traits<c_audio_source>::id"
     return (
         "component_traits<"
         f"{cpp_name(reference, current_content)}>::id")
@@ -3669,9 +3708,13 @@ def entity_type_expression(reference: str, current_content: str) -> str:
 def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
     component_records = {
         record["canonical"]: record
+        for record in BUILTIN_COMPONENTS.values()
+    }
+    component_records.update({
+        record["canonical"]: record
         for document in dependencies.values()
         for record in document.get("components", [])
-    }
+    })
     component_records.update({
         f"{module.content_id}:{item.name}": component_record(module.content_id, item)
         for item in module.components})
@@ -4030,7 +4073,9 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
             type_name = cpp_name(value.component, module.content_id)
             record = next(
                 (record for record in
-                 [component_record(module.content_id, item) for item in module.components]
+                 [*BUILTIN_COMPONENTS.values(),
+                  *[component_record(module.content_id, item)
+                    for item in module.components]]
                  + [record for document in dependencies.values()
                     for record in document.get("components", [])]
                  if record["canonical"] == value.component), None)

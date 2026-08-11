@@ -153,6 +153,44 @@ typedef uint64_t EngineEventId;
 typedef uint64_t EngineTextureId;
 typedef uint64_t EnginePairSlot;
 
+enum {
+    AUDIO_PLAYBACK_STOPPED = 0,
+    AUDIO_PLAYBACK_PLAYING = 1,
+    AUDIO_PLAYBACK_PAUSED = 2,
+    AUDIO_COMMAND_PLAY = 1,
+    AUDIO_COMMAND_PAUSE = 2,
+    AUDIO_COMMAND_STOP = 3,
+    AUDIO_COMMAND_SEEK = 4,
+    AUDIO_SOURCE_MAX_COMMANDS = 32,
+};
+
+typedef struct EngineAudioSourceCommand {
+    uint32_t kind;
+    uint32_t sequence;
+    uint64_t sample;
+    uint64_t tick;
+    float alpha;
+} EngineAudioSourceCommand;
+
+typedef struct EngineAudioSource {
+    EngineAudioId clip;
+    uint32_t playback;
+    uint32_t looping;
+    uint32_t spatial;
+    float gain;
+    float distance_scale;
+    float pan_range;
+    float position_x;
+    float position_y;
+    uint64_t requested_sample;
+    uint64_t observed_sample;
+    uint64_t voice;
+    uint32_t observed_playing;
+    uint32_t command_count;
+    uint32_t command_sequence;
+    EngineAudioSourceCommand commands[AUDIO_SOURCE_MAX_COMMANDS];
+} EngineAudioSource;
+
 typedef struct EngineStructHeader {
     uint32_t struct_size;
 } EngineStructHeader;

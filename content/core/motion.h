@@ -4,6 +4,7 @@
 #include <cmath>
 
 struct motion_breakpoint {
+    breakpoint_time time{};
     uint64 tick_id = 0;
     float trigger_alpha = 0.0f;
     uint32 kind = 0;
@@ -62,6 +63,7 @@ inline motion_breakpoint make_motion_breakpoint(
         vec2 post_velocity,
         float post_rotation) {
     return {
+        {tick_id, clamp(trigger_alpha, 0.0f, 1.0f), 0u},
         tick_id,
         clamp(trigger_alpha, 0.0f, 1.0f),
         kind,
@@ -74,10 +76,7 @@ inline motion_breakpoint make_motion_breakpoint(
 }
 
 inline double motion_breakpoint_key(const motion_breakpoint& breakpoint) {
-    return static_cast<double>(breakpoint.tick_id)
-        - 1.0
-        + static_cast<double>(
-            clamp(breakpoint.trigger_alpha, 0.0f, 1.0f));
+    return breakpoint_value(breakpoint.time);
 }
 
 inline uint32_t motion_breakpoint_count(

@@ -58,3 +58,14 @@ The supported declarations are intentionally prefix-driven: `$s/$c/$r/$sc/$cr/$s
 uses its configured base gain equally in both channels. Positive values enable
 the distance curve, and individual `play_spatial_audio` calls may override the
 content-wide default.
+
+Render-resident `c_audio_source` is an engine-defined persistent audio
+component. Adding it creates a looping or one-shot voice; `play`, `pause`,
+`stop`, and `seek_samples(from_seconds(...))` control it from render callbacks.
+Its live cursor is available through `sample_position()` and
+`position_seconds()`. One-shot effects continue to use `play_spatial_audio`.
+
+`breakpoint_time`, `breakpoint_cursor`, `breakpoint_insert`, and
+`run_crossed_breakpoints` provide reusable ordered timelines for typed content
+records. Each record has a `time` member, and callbacks execute on the
+content/render thread; the audio mixer never invokes content code.

@@ -15,6 +15,7 @@ typedef struct EngineUVec4 { uint32_t x, y, z, w; } EngineUVec4;
 
 #if defined(__cplusplus)
 #include <cmath>
+#include <cstdlib>
 #include <type_traits>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
@@ -56,6 +57,15 @@ inline float angle_difference(float a, float b) {
 }
 inline vec2 angle_to_vec(float angle) { return {std::cos(angle), std::sin(angle)}; }
 inline float vec_to_angle(vec2 value) { return std::atan2(value.y, value.x); }
+
+inline float frand() {
+    return static_cast<float>(std::rand()) /
+        static_cast<float>(RAND_MAX);
+}
+
+inline float sfrand() {
+    return frand() * 2.0f - 1.0f;
+}
 #endif
 
 #endif

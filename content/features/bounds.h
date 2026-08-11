@@ -59,7 +59,7 @@ $r g_update[1000] {
 
 $c g_start {
     g_shoot_sequence = 0u;
-    g_random_state = 0x12345678u;
+    std::srand(0x12345678u);
     g_spatial_chunks.clear();
     g_spatial_generation = 0u;
     reset_particle_state();

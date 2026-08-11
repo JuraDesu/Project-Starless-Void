@@ -61,7 +61,8 @@ $c e_update[-500](
             world, body.position, automatic.target_radius,
             [&](entity target) {
         if (!target || target.stable_id() == e.stable_id()
-                || !target.has<c_health>() || !target.has<c_rigid_body>()
+                || !target.has<c_enemy>() || !target.has<c_health>()
+                || !target.has<c_rigid_body>()
                 || !target.has<c_aabb>() || !target.has<c_collider>())
             return true;
         const auto& health = target.get<c_health>();

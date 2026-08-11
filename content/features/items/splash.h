@@ -32,7 +32,8 @@ $c e_hit(
             world, event.point, radius,
             [&](entity target) {
         if (target.stable_id() == event.target
-                || !target.has<c_health>() || !target.has<c_rigid_body>()
+                || !target.has<c_enemy>() || !target.has<c_health>()
+                || !target.has<c_rigid_body>()
                 || !target.has<c_aabb>() || !target.has<c_collider>())
             return true;
         const auto& collider = target.get<c_collider>();

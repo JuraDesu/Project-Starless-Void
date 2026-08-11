@@ -31,14 +31,12 @@ $c e_update[-500](c_effect_burning& burning, c_health& health) {
 
 $c e_hit(
     c_inst_debuff_burning,
-    c_inst_damage
+    c_inst_damage,
+    target: c_burnable
 ) {
-    entity target = world.from_stable_id(event.target);
-    if (target && target.has<c_burnable>()) {
-        auto* effect = target.try_get_mut<c_effect_burning>();
-        if (effect) effect->ticks_remaining = 40;
-        else target.set<c_effect_burning>({40, 0.0f});
-    }
+    auto* effect = target_entity.try_get_mut<c_effect_burning>();
+    if (effect) effect->ticks_remaining = 40;
+    else target_entity.set<c_effect_burning>({40, 0.0f});
 };
 
 #include "render.hpp"

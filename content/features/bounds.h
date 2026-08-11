@@ -70,8 +70,8 @@ $c g_start {
         return e.set<c_rigid_body>(
             {{bounds.pos.x + bounds_center.x, bounds.pos.y + bounds.bounds.y * 0.2}, 0.0f, {}, 0.0f});
     });
-    world.spawn<p_dummy>([](entity e) {
-        return e.set<c_rigid_body>(
+    world.spawn<p_enemy>([](entity e) {
+        return e.add<c_dummy>() && e.set<c_rigid_body>(
             {{bounds.pos.x + bounds_center.x, bounds.pos.y + bounds.bounds.y * 0.9}, 0.0f, {}, 0.0f});
     });
     const auto item_types = component_children<c_item>();

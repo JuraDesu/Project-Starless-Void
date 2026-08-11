@@ -176,6 +176,10 @@ typedef struct EngineComponentDesc {
     uint64_t contract_fingerprint;
 } EngineComponentDesc;
 
+typedef struct EngineEventRoleDesc {
+    uint32_t offset;
+} EngineEventRoleDesc;
+
 typedef struct EngineEventDesc {
     EngineStructHeader header;
     const char* name;
@@ -183,6 +187,8 @@ typedef struct EngineEventDesc {
     uint32_t alignment;
     uint32_t residency;
     uint64_t fingerprint;
+    uint32_t role_count;
+    EngineEventRoleDesc roles[8];
     EngineEventId* result;
 } EngineEventDesc;
 
@@ -197,6 +203,7 @@ typedef struct EngineTermDesc {
     uint32_t access;
     uint32_t match;
     uint32_t pair_wildcard;
+    uint32_t event_role;
 } EngineTermDesc;
 
 typedef struct EnginePrefabDesc {

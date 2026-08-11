@@ -25,7 +25,8 @@ $c e_update[-500](
     const auto valid_target = [&](entity candidate) {
         const auto* health = candidate.try_get<c_health>();
         const auto* collider = candidate.try_get<c_collider>();
-        return candidate && health && health->current > 0 && collider
+        return candidate && candidate.has<c_enemy>()
+            && health && health->current > 0 && collider
             && (collider->type_bits & collision_enemy) != 0u
             && candidate.has<c_rigid_body>() && candidate.has<c_aabb>();
     };

@@ -91,18 +91,14 @@ $cr p_inst {
 $c e_hit(
     c_inst,
     const c_inst_damage& damage,
-    const c_knockback_on_hit& knockback
+    const c_knockback_on_hit& knockback,
+    target: c_enemy,
+    target: c_health& health,
+    target: c_rigid_body& target_body
 ) {
-    entity target = world.from_stable_id(event.target);
-    auto* health = target.try_get_mut<c_health>();
-    if (health) {
-        health->current = max(health->current - damage.amount, 0);
-        auto* body = target.try_get_mut<c_rigid_body>();
-        if (body) {
-            body->velocity.x += -event.normal.x * knockback.strength;
-            body->velocity.y += -event.normal.y * knockback.strength;
-        }
-    }
+    health.current = max(health.current - damage.amount, 0);
+    target_body.velocity.x += -event.normal.x * knockback.strength;
+    target_body.velocity.y += -event.normal.y * knockback.strength;
 };
 
 $c e_update[200](
@@ -124,7 +120,8 @@ $c e_update[200](
     for_each_spatial_candidate_in_bounds(
             world, sweep_min, sweep_max,
             [&](entity target) {
-        if (!target.has<c_health>() || !target.has<c_rigid_body>()
+        if (!target.has<c_enemy>() || !target.has<c_health>()
+                || !target.has<c_rigid_body>()
                 || !target.has<c_aabb>() || !target.has<c_collider>())
             return true;
         const uint64_t stable = target.stable_id();

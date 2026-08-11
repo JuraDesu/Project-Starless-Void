@@ -221,9 +221,10 @@ inline void spawn_projectile_burst(
     }
 }
 
-$c e_hit[2000](c_hit_feedback_history& history) {
-    entity target = world.from_stable_id(event.target);
-    const auto* health = target.try_get<c_health>();
+$c e_hit[2000](
+    c_hit_feedback_history& history,
+    target: optional read c_health health
+) {
     append_hit_feedback(
         history, tick, event.toi, event.target, event.point,
         health && health->current <= 0,

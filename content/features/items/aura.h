@@ -111,7 +111,8 @@ $c e_update[-500](
             [&](entity target) {
         if (!target || target.stable_id() == source.owner
                 || target.stable_id() == e.stable_id()
-                || !target.has<c_health>() || !target.has<c_collider>())
+                || !target.has<c_enemy>() || !target.has<c_health>()
+                || !target.has<c_collider>())
             return true;
         const auto& collider = target.get<c_collider>();
         if ((collider.type_bits & collision_enemy) == 0u) return true;

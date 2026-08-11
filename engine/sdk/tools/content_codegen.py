@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
 MAX_TERMS = 8
+MAX_EVENT_ROLES = 8
 MAX_ATTRIBUTES = 8
 RESIDENCY = {"s": 1, "c": 2, "r": 4, "sc": 3, "cr": 6, "scr": 7}
 WORLD_ENUM = {"s": "WORLD_SERVER", "c": "WORLD_CLIENT", "r": "WORLD_RENDER"}
@@ -220,6 +221,7 @@ class Term:
     variable: str
     match: str = "required"
     pair_wildcard: bool = False
+    role: str = ""
 
     @property
     def presence_only(self) -> bool:
@@ -690,13 +692,26 @@ class Parser:
             self.i += 1
         raise self.error("unterminated event member")
 
-    def component_terms(self) -> list[Term]:
+    def component_terms(self, *, allow_roles: bool = False) -> list[Term]:
         """Parse the common component-term grammar used by all handlers."""
         terms: list[Term] = []
         self.literal("(")
         self.skip()
         while self.i < len(self.text) and self.text[self.i] != ")":
             first = self.identifier(reference=True)
+            role = ""
+            if allow_roles:
+                self.skip()
+                if self.i < len(self.text) and self.text[self.i] == ":":
+                    if first in {"const", "optional", "exclude", *ACCESS_ENUM}:
+                        raise self.error("event roles must prefix the complete term")
+                    role = first
+                    self.i += 1
+                    first = self.identifier(reference=True)
+            else:
+                self.skip()
+                if self.i < len(self.text) and self.text[self.i] == ":":
+                    raise self.error("event roles are only valid for custom events")
             match = "required"
             if first == "optional":
                 match = "optional"
@@ -734,7 +749,10 @@ class Parser:
                 if self.i >= len(self.text) or self.text[self.i] in ",)":
                     access = PRESENCE_ACCESS
                     variable = ""
-                    terms.append(Term(access, component, variable, match, pair_wildcard))
+                    if role and pair_wildcard:
+                        raise self.error("event roles cannot qualify pair wildcard terms")
+                    terms.append(Term(access, component, variable, match,
+                                      pair_wildcard, role))
                     self.skip()
                     if self.i < len(self.text) and self.text[self.i] == ",":
                         self.i += 1
@@ -749,7 +767,10 @@ class Parser:
                 variable = self.identifier()
             if access not in ACCESS_ENUM and access != PRESENCE_ACCESS:
                 raise self.error("term access must be read, write, or mut")
-            terms.append(Term(access, component, variable, match, pair_wildcard))
+            if role and pair_wildcard:
+                raise self.error("event roles cannot qualify pair wildcard terms")
+            terms.append(Term(access, component, variable, match,
+                              pair_wildcard, role))
             self.skip()
             if self.text[self.i] == ",":
                 self.i += 1
@@ -758,7 +779,7 @@ class Parser:
         self.literal(")")
         if len(terms) > MAX_TERMS:
             raise self.error(f"at most {MAX_TERMS} terms are supported")
-        if len({term.component for term in terms}) != len(terms):
+        if len({(term.role, term.component) for term in terms}) != len(terms):
             raise self.error("duplicate component term")
         return terms
 
@@ -1080,7 +1101,8 @@ class Parser:
                 fields, members = self.event_fields()
                 return Event(event, RESIDENCY[residency], fields, source, members=members)
             order = self.handler_order()
-            terms = self.component_terms()
+            terms = self.component_terms(
+                allow_roles=event not in EVENT_ENUM and event != "e_update")
             if not terms:
                 if event == "e_update":
                     raise self.error("empty e_update was replaced by g_update")
@@ -1326,6 +1348,11 @@ def component_record(content_id: str, component: Component) -> dict:
 
 def event_record(content_id: str, event: Event) -> dict:
     fields = [field_record(item, content_id) for item in event.fields]
+    roles = [
+        {"name": item.name}
+        for item in event.fields
+        if item.type_name == "entity_id" and item.count == 1
+    ]
     return {
         "kind": "event",
         "name": event.name,
@@ -1336,6 +1363,7 @@ def event_record(content_id: str, event: Event) -> dict:
         "stable_entity_references": any(
             item.type_name == "entity_id" for item in event.fields),
         "fields": fields,
+        "roles": roles,
         "members": list(event.members),
         "fingerprint": schema_fingerprint({
             "canonical": f"{content_id}:{event.name}",
@@ -2135,6 +2163,14 @@ def validate_cpp_handles(module: Module, dependencies: dict[str, dict]) -> None:
 
 
 def validate_module(module: Module, dependencies: dict[str, dict]) -> None:
+    for event in module.events:
+        role_count = sum(
+            1 for field in event.fields
+            if field.type_name == "entity_id" and field.count == 1)
+        if role_count > MAX_EVENT_ROLES:
+            raise CodegenError(
+                f"{event.source}: custom events support at most "
+                f"{MAX_EVENT_ROLES} named entity roles")
     for component in module.components:
         seen_nested: set[tuple[str, str]] = set()
         for nested in component.nested_observers:
@@ -2883,6 +2919,29 @@ def validate_module(module: Module, dependencies: dict[str, dict]) -> None:
                 if not residency & side:
                     raise CodegenError(
                         f"{observer.source}: custom event is absent from observer world")
+                role_fields = {
+                    item.name: item for item in event_record.fields
+                } if isinstance(event_record, Event) else {
+                    item["name"]: item
+                    for item in event_record.get("fields", [])
+                }
+                roles = {term.role for term in observer.terms if term.role}
+                if len(roles) > MAX_EVENT_ROLES:
+                    raise CodegenError(
+                        f"{observer.source}: custom events support at most "
+                        f"{MAX_EVENT_ROLES} named entity roles")
+                for term in observer.terms:
+                    if not term.role:
+                        continue
+                    field = role_fields.get(term.role)
+                    field_type = (field.type_name if isinstance(field, Field)
+                                  else field.get("type")) if field else None
+                    field_count = (field.count if isinstance(field, Field)
+                                   else field.get("count", 1)) if field else 0
+                    if field_type != "entity_id" or field_count != 1:
+                        raise CodegenError(
+                            f"{observer.source}: event role {term.role!r} "
+                            "must name a scalar entity_id field")
 
     validate_cpp_handles(module, dependencies)
 
@@ -3637,6 +3696,15 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
         canonical = reference if ":" in reference else f"{module.content_id}:{reference}"
         return component_records[canonical]["size"] == 0
 
+    def event_role_index(observer: Observer, term: Term) -> int:
+        if not term.role:
+            return 0
+        canonical = observer.event if ":" in observer.event \
+            else f"{module.content_id}:{observer.event}"
+        record = event_records[canonical]
+        names = [item["name"] for item in record.get("roles", [])]
+        return names.index(term.role) + 1
+
     lines = [
         '#include "content_generated.h"', '#include "content_api.h"',
         '#include "registry.hpp"', '#include "input.hpp"',
@@ -3746,6 +3814,14 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
             f"      d.fingerprint = {record['fingerprint']}ull; "
             f"d.result = &event_traits<"
             f"{cpp_name(event.name, module.content_id)}>::id;",
+            f"      d.role_count = {len(record.get('roles', []))}u;",
+        ])
+        for role in record.get("roles", []):
+            event_type = cpp_name(event.name, module.content_id)
+            lines.append(
+                f"      d.roles[{record['roles'].index(role)}] = "
+                f"{{offsetof({event_type}, {role['name']})}};")
+        lines.extend([
             "      if (!g_api->append_event(g_engine_context, &d)) return 0; }",
         ])
     lines.extend([
@@ -3919,7 +3995,8 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
                 f"      d.terms[{index}] = "
                 f"{{{component_id_expression(term.component, module.content_id)}, "
                 f"{ACCESS_CPP[term.access]}, {MATCH_ENUM[term.match]}, "
-                f"{1 if term.pair_wildcard else 0}}};")
+                f"{1 if term.pair_wildcard else 0}, "
+                f"{event_role_index(observer, term)}}};")
         lines.append("      if (!g_api->append_observer(g_engine_context, &d)) return 0; }")
     lines.extend(["        return 1;", "    case PHASE_SYSTEMS:"])
     for system in module.systems:
@@ -3934,7 +4011,8 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
                 f"      d.terms[{index}] = "
                 f"{{{component_id_expression(term.component, module.content_id)}, "
                 f"{ACCESS_CPP[term.access]}, {MATCH_ENUM[term.match]}, "
-                f"{1 if term.pair_wildcard else 0}}};")
+                f"{1 if term.pair_wildcard else 0}, "
+                f"0}};")
         lines.append("      if (!g_api->append_system(g_engine_context, &d)) return 0; }")
     lines.extend([
         "        return 1;", "    default: return 1;", "    }", "}",
@@ -4087,6 +4165,17 @@ def render_cpp(module: Module, dependencies: dict[str, dict]) -> str:
             "            World world{callback_context_internal};",
             "            (void)e; (void)world;",
         ])
+        if observer.custom:
+            roles = []
+            for term in observer.terms:
+                if term.role and term.role not in roles:
+                    roles.append(term.role)
+            for role in roles:
+                lines.extend([
+                    f"            entity {role}_entity = "
+                    f"world.from_stable_id(event.{role});",
+                    f"            (void){role}_entity;",
+                ])
         for index, term in enumerate(observer.terms):
             if term.match == "exclude":
                 continue

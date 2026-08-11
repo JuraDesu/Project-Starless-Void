@@ -9,3 +9,4 @@ __pycache__/
 .idea/
 .vs/
 CMakeUserPresets.json
+.engine-tools.json

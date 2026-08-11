@@ -1,6 +1,6 @@
 box bounds = {{0.0f, 0.0f}, {30.0f, 40.0f}};
 vec2 bounds_center = bounds.center();
-$c e_update(c_aabb& aabb, c_rigid_body& rb, c_player& player, c_collider& col){
+$c e_update(c_aabb& aabb, c_rigid_body& rb, const c_player& player, c_collider& col){
     (void)aabb;
     (void)col;
     if (!bounds.intersects(rb.position)) {
@@ -35,8 +35,9 @@ $c g_start {
     });
 };
 
-$r e_add(const c_presented_motion& motion, c_bounds bounds) {
+$r e_add(const c_presented_motion& motion, const c_bounds& bounds_tag) {
     (void)motion;
+    (void)bounds_tag;
     print << "motion pos: " << motion.body.position.x << " " << motion.body.position.y << "\n";
     camera_follow(e);
     camera_zoom(0.04f);

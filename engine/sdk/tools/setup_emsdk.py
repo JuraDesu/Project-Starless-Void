@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 import shutil
@@ -13,6 +14,7 @@ import sys
 
 DEFAULT_VERSION = "4.0.14"
 REPOSITORY = "https://github.com/emscripten-core/emsdk.git"
+SETTINGS_NAME = ".engine-tools.json"
 
 
 def pinned_version() -> str:
@@ -44,6 +46,32 @@ def default_directory() -> Path:
         return (Path(root) if root else Path.home() / "AppData" / "Local") / "emsdk"
     root = os.environ.get("XDG_DATA_HOME")
     return (Path(root) if root else Path.home() / ".local" / "share") / "emsdk"
+
+
+def project_root() -> Path | None:
+    for candidate in Path(__file__).resolve().parents:
+        if (candidate / "CMakeLists.txt").is_file() \
+                and (candidate / "engine" / "sdk" / "engine-content-config.cmake").is_file():
+            return candidate
+    return None
+
+
+def remember_emsdk(project: Path, destination: Path) -> None:
+    path = project / SETTINGS_NAME
+    settings: dict[str, str] = {}
+    if path.is_file():
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(value, dict):
+                settings = value
+        except (OSError, json.JSONDecodeError):
+            pass
+    settings["emsdk"] = str(destination)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(
+        json.dumps(settings, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8")
+    os.replace(temporary, path)
 
 
 def main() -> int:
@@ -84,8 +112,14 @@ def main() -> int:
     output = (result.stdout + result.stderr).strip()
     if result.returncode or version not in output:
         return fail(f"expected Emscripten {version}, but emcc reported:\n{output}")
+    project = project_root()
+    if project:
+        remember_emsdk(project, destination)
     print(f"Emscripten {version} is ready at {destination}")
-    print(f"Set EMSDK={destination} before running the build wrapper.")
+    if project:
+        print(f"Saved this path for {project}")
+    else:
+        print(f"Set EMSDK={destination} before running the build wrapper.")
     return 0
 
 

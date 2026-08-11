@@ -14,6 +14,7 @@ import sys
 
 
 DEFAULT_EMSDK = "4.0.14"
+SETTINGS_NAME = ".engine-tools.json"
 
 
 def fail(message: str) -> int:
@@ -32,11 +33,44 @@ def executable(name: str, environment_name: str) -> Path | None:
     return Path(found).resolve() if found else None
 
 
-def emsdk_root() -> Path | None:
+def project_settings(project: Path) -> dict[str, str]:
+    path = project / SETTINGS_NAME
+    if not path.is_file():
+        return {}
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"warning: ignoring invalid {path}: {exc}", file=sys.stderr)
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def save_project_setting(project: Path, name: str, value: str) -> None:
+    path = project / SETTINGS_NAME
+    settings = project_settings(project)
+    if settings.get(name) == value:
+        return
+    settings[name] = value
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(
+        json.dumps(settings, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def emsdk_root(project: Path) -> Path | None:
     configured = os.environ.get("EMSDK")
     if configured:
         path = Path(configured).expanduser()
         return path.resolve() if path.is_dir() else None
+    saved = project_settings(project).get("emsdk")
+    if isinstance(saved, str) and saved:
+        path = Path(saved).expanduser()
+        if path.is_dir():
+            return path.resolve()
+        print(
+            f"warning: saved EMSDK directory no longer exists: {path}",
+            file=sys.stderr)
     if os.name == "nt":
         local_app_data = os.environ.get("LOCALAPPDATA")
         candidate = Path(local_app_data) / "emsdk" if local_app_data else None
@@ -108,7 +142,7 @@ def main() -> int:
         return fail("CMake was not found; install it or set CMAKE to its executable")
     if not ninja:
         return fail("Ninja was not found; install it or set NINJA_PATH to its executable")
-    emsdk = emsdk_root()
+    emsdk = emsdk_root(project)
     if not emsdk:
         if os.name == "nt":
             return fail(
@@ -120,6 +154,7 @@ def main() -> int:
     version_error = check_emcc(emsdk, pinned_emsdk(engine))
     if version_error:
         return fail(version_error)
+    save_project_setting(project, "emsdk", str(emsdk))
     toolchain = emscripten_toolchain(emsdk)
     if not toolchain.is_file():
         return fail(f"Emscripten CMake toolchain was not found: {toolchain}")

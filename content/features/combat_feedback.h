@@ -95,7 +95,7 @@ $compute projectile_spark_particle {
         vec4 start_color;
         vec4 end_color;
     };
-    instance c_colored_quad;
+    instance c_color;
     logic {
         instance.position += state.velocity * dt;
         instance.rotation += state.angular_velocity * dt;
@@ -122,7 +122,7 @@ $compute projectile_trail_particle {
         vec4 start_color;
         vec4 end_color;
     };
-    instance c_colored_quad;
+    instance c_color;
     logic {
         instance.position += state.velocity * dt;
         instance.rotation += state.angular_velocity * dt;

@@ -81,7 +81,7 @@ $cr p_inst {
     c c_projectile_previous {};
     c c_aabb {{}, {0.14f, 0.14f}};
     c c_collider {collision_enemy | collision_tile, collision_friendly, false, true};
-    r c_colored_quad {
+    r c_color {
         {}, {0.28f, 0.28f}, 0.0f,
         {0.35f, 0.95f, 1.0f, 1.0f}, 0.1f
     };
@@ -96,7 +96,6 @@ $c e_hit(
     c_inst,
     const c_inst_damage& damage,
     const c_knockback_on_hit& knockback,
-    target: c_enemy,
     target: c_health& health,
     target: c_rigid_body& target_body
 ) {
@@ -123,8 +122,7 @@ $c e_update[200](
     for_each_spatial_candidate_in_bounds(
             world, sweep_min, sweep_max,
             [&](entity target) {
-        if (!target.has<c_enemy>() || !target.has<c_health>()
-                || !target.has<c_rigid_body>()
+        if (!target.has<c_health>() || !target.has<c_rigid_body>()
                 || !target.has<c_aabb>() || !target.has<c_collider>())
             return true;
         const uint64_t stable = target.stable_id();

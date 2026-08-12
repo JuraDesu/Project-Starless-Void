@@ -124,7 +124,7 @@ $cr c_rigid_body {
 
 $c c_kinematic_motion {};
 
-$c c_health {
+$cr c_health {
     int32 current = 5;
     int32 max = 5;
 };

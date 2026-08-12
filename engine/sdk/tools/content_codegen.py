@@ -82,6 +82,22 @@ TYPE_INFO = {
     "breakpoint_time": ("breakpoint_time", 16, 8, None),
 }
 BUILTIN_COMPONENTS = {
+    "c_hidden": {
+        "name": "c_hidden",
+        "canonical": "builtin:c_hidden",
+        "size": 0,
+        "alignment": 1,
+        "residency": RESIDENCY["r"],
+        "authority": RESIDENCY["r"],
+        "replicated": False,
+        "kind": "tag",
+        "shader": False,
+        "base": None,
+        "contract": [],
+        "contract_fingerprint": 1,
+        "fields": [],
+        "fingerprint": 0x7d3e2a1c9b485601,
+    },
     "c_audio_source": {
         "name": "c_audio_source",
         "canonical": "builtin:c_audio_source",
@@ -3098,6 +3114,7 @@ def render_header(module: Module, dependencies: dict[str, dict]) -> str:
         '#include "breakpoints.hpp"',
         '#include "callback.hpp"',
         '#include "audio_source.hpp"',
+        '#include "render_components.hpp"',
         '#include "box.hpp"',
         '#include "camera.hpp"',
         '#include "print.hpp"',

@@ -53,7 +53,7 @@ $compute burning_particle {
         vec4 start_color;
         vec4 end_color;
     };
-    instance c_colored_quad;
+    instance c_color;
     logic {
         instance.position += state.velocity * dt;
         instance.rotation += state.angular_velocity * dt;
@@ -116,7 +116,7 @@ $r e_update[-700](
     if (const auto* presented = e.try_get<c_presented_motion>()) {
         if (!presented->valid || !presented->visible) continue;
         position = presented->body.position;
-    } else if (const auto* sprite = e.try_get<c_textured_sprite>()) {
+    } else if (const auto* sprite = e.try_get<c_texture>()) {
         position = sprite->position;
     }
     emit_burning_particles(

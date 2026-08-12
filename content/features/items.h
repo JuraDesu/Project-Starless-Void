@@ -5,18 +5,18 @@
 
 
 template <typename Texture>
-inline c_textured_sprite item_icon() {
+inline c_texture item_icon() {
     const auto& image = texture<Texture>();
     return {
         {}, texture_world_size(image, 20.0f), 0.0f,
-        texture_uv(image), image.layer, 0.05f, 0
+        texture_uv(image), image.layer, 0.05f
     };
 }
 
 
 $r e_item_visual {
     const char* name{};
-    c_textured_sprite icon{};
+    c_texture icon{};
     bool valid{};
 };
 
@@ -105,11 +105,10 @@ $r e_update[-800](
     e_item_visual visual{};
     if (dispatch(e, visual) && visual.valid) {
         visual.icon.position = body.position;
-        visual.icon.stable_id = e.stable_id();
-        e.set<c_textured_sprite>(visual.icon);
+        e.set<c_texture>(visual.icon);
     }
 };
 
 $r e_remove(c_ground_item) {
-    e.remove<c_textured_sprite>();
+    e.remove<c_texture>();
 };

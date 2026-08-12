@@ -12,8 +12,8 @@ $cr p_enemy {
     c c_burnable {};
     c c_aabb {{0.0f, 0.0f}, {0.245f, 0.245f}};
     c c_collider {collision_friendly, collision_enemy, true, true};
-    r c_textured_sprite {
-        make_sprite<t_invalid>({}, 20.0f)
+    r c_texture {
+        make_texture<t_invalid>({}, 20.0f)
     };
 };
 
@@ -38,6 +38,7 @@ $c e_update(
 ) {
     if (boss.cooldown <= 0.f) {
         boss.cooldown = 1.0;
+        const entity_id owner = e.stable_id();
         constexpr int count = 20;
         for (int i = 0; i < count; i++){
             float fi = float(i) / float(count);
@@ -51,6 +52,8 @@ $c e_update(
                     0.0f
                 };
                 e.set<c_rigid_body>(projectile_body);
+                e.set<c_inst_source>({speed, owner});
+                e.set<c_projectile_previous>({projectile_body.position});
                 append_spawn_motion_breakpoint(
                     e, tick, projectile_body);
             });

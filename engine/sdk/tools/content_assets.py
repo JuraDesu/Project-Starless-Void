@@ -33,7 +33,8 @@ def tool_identity(path: Path) -> str:
     return f"{path.resolve().as_posix()}:{stat.st_size}:{stat.st_mtime_ns}"
 
 
-PREPARED_REVISION = "prepared-assets-v1"
+PREPARED_REVISION = "prepared-assets-v2"
+ATLAS_EXPORT_LAYER = "main"
 
 
 def source_identity(path: Path) -> str:
@@ -249,7 +250,8 @@ def export_aseprite(
         fingerprint: dict | None = None) -> None:
     png.parent.mkdir(parents=True, exist_ok=True)
     command = [
-        str(executable), "--batch", "--list-slices", str(source),
+        str(executable), "--batch", "--list-slices", "--layer",
+        ATLAS_EXPORT_LAYER, str(source),
         "--sheet", str(png), "--data", str(meta),
         "--format", "json-hash",
     ]
@@ -348,7 +350,8 @@ def stage(root: Path, output_root: Path, manifest_path: Path, header: Path,
         source = root / atlas["source"]
         prepared_png, prepared_json = prepared_atlas_paths(source)
         fingerprint = prepared_fingerprint(
-            "aseprite", source, pipeline=asset_script_hash)
+            "aseprite", source, pipeline=asset_script_hash,
+            layer=ATLAS_EXPORT_LAYER)
         prepared_exists = prepared_png.is_file() and prepared_json.is_file()
         prepared_document = None
         if prepared_exists:
@@ -366,10 +369,9 @@ def stage(root: Path, output_root: Path, manifest_path: Path, header: Path,
                 prepared_document = validate_atlas_export(
                     prepared_png, prepared_json, source)
             elif prepared_exists and prepared_document is not None:
-                print(
-                    f"content asset warning: prepared atlas is stale for {source}; "
-                    "using the checked-in output. Set ASEPRITE to regenerate it.",
-                    file=sys.stderr)
+                raise AssetError(
+                    f"prepared atlas is stale for {source}; set ASEPRITE to "
+                    "regenerate its PNG/JSON output")
             else:
                 raise AssetError(
                     f"prepared atlas files are missing for {source}; "

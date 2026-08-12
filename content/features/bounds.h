@@ -60,7 +60,7 @@ $cr p_bounds_camera {
 inline void spawn_bounds_outline(
         const World& world, const box& bounds, const vec4& color) {
     entity outline = world.create();
-    outline.set<c_debug_wireframe>(c_debug_wireframe{
+    outline.set<c_line_quad>(c_line_quad{
         bounds.center(), bounds.bounds, 0.0f, color, 0.0f});
 }
 

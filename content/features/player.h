@@ -32,8 +32,8 @@ $cr p_player {
     };
     c c_player_inventory {};
     c c_player_weapon {};
-    r c_textured_sprite {
-        make_sprite<t_player>({}, 18.0f)
+    r c_texture {
+        make_texture<t_player>({}, 18.0f)
     };
     r c_rigidbody_sample_history {};
     r c_render_motion_presentation {};
@@ -142,5 +142,37 @@ $c e_update[-500](
                 if (spawned_any) weapon.cooldown_ticks = 2;
             }
         }
+    }
+};
+
+// A lethal hit restarts the complete gameplay session at the next safe
+// simulation boundary. The reset is deferred by the host, so this handler
+// never destroys the world while ECS is iterating it.
+$c e_update[3000](c_player, const c_health& health) {
+    if (health.current <= 0)
+        reset_game();
+};
+
+$r e_update(c_player, const c_health& health) {
+    constexpr float heart_pixels = 24.0f;
+    constexpr float gap_pixels = 4.0f;
+    constexpr float margin_pixels = 16.0f;
+    const int32 heart_count = max(health.max, 0);
+    const int32 filled_count = clamp(health.current, 0, heart_count);
+    for (int32 index = 0; index < heart_count; ++index) {
+        const vec2 screen_center{
+            margin_pixels + heart_pixels * 0.5f
+                + static_cast<float>(index) * (heart_pixels + gap_pixels),
+            margin_pixels + heart_pixels * 0.5f
+        };
+        const auto draw_heart = [&](auto texture_marker, int32 order) {
+            auto heart = make_texture<decltype(texture_marker)>();
+            heart.position = screen_to_world(screen_center);
+            heart.size = screen_size_to_world({heart_pixels, heart_pixels});
+            draw(heart, order);
+        };
+        draw_heart(t_heart_slot{}, 33010);
+        if (index < filled_count)
+            draw_heart(t_heart{}, 33011);
     }
 };

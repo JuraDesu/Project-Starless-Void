@@ -10,15 +10,13 @@
 
 inline bool g_debug_overlay_enabled = false;
 
-$r c_textured_sprite {
+$r c_texture {
     vec2 position;
     vec2 size;
     float rotation;
     vec4 uv_rect;
-    uint32 atlas_layer;
+    uint32 layer;
     float depth;
-    entity_id stable_id = 0;
-    uint32 visible = 1;
 
     shader {
         mesh quad;
@@ -27,7 +25,6 @@ $r c_textured_sprite {
         logic {
             bridge {
                 uv: vec2f,
-                visible: u32,
             };
 
             vertex {
@@ -41,11 +38,9 @@ $r c_textured_sprite {
                 out.position = projection * vec4f(
                     position + rotated, depth, 1.0);
                 out.uv = uv_rect.xy + local_uv * uv_rect.zw;
-                out.visible = visible;
             }
 
             fragment {
-                if (in.visible == 0u) { discard; }
                 let sampled = sample_texture(in.uv);
                 if (sampled.a < 0.01) { discard; }
                 out.color = sampled;
@@ -56,25 +51,23 @@ $r c_textured_sprite {
 
 
 template <typename Texture>
-inline c_textured_sprite make_sprite(
+inline c_texture make_texture(
         vec2 position = {}, float pixels_per_world_unit = 18.0f,
-        float rotation = 0.0f, float depth = 0.0f,
-        entity_id stable_id = 0) {
+        float rotation = 0.0f, float depth = 0.0f) {
     const auto& image = texture<Texture>();
     return {
         position, texture_world_size(image, pixels_per_world_unit),
-        rotation, texture_uv(image), image.layer, depth, stable_id
+        rotation, texture_uv(image), image.layer, depth
     };
 }
 
 
-$r c_colored_quad {
+$r c_color {
     vec2 position;
     vec2 size;
     float rotation;
     vec4 color;
     float depth;
-    uint32 visible = 1;
 
     shader {
         mesh quad;
@@ -82,7 +75,6 @@ $r c_colored_quad {
         logic {
             bridge {
                 color: vec4f,
-                visible: u32,
             };
 
             vertex {
@@ -96,18 +88,16 @@ $r c_colored_quad {
                 out.position = projection * vec4f(
                     position + rotated, depth, 1.0);
                 out.color = color;
-                out.visible = visible;
             }
 
             fragment {
-                if (in.visible == 0u) { discard; }
                 out.color = in.color;
             }
         };
     };
 };
 
-$r c_debug_line {
+$r c_line {
     vec2 start;
     vec2 end;
     vec4 color;
@@ -138,7 +128,7 @@ $r c_debug_line {
     };
 };
 
-$r c_debug_wireframe {
+$r c_line_quad {
     vec2 position;
     vec2 size;
     float rotation;
@@ -955,25 +945,33 @@ inline c_presented_motion resolve_canonical_presented_motion(
 }
 
 
-$r e_update[-800](
-    const c_presented_motion& presented,
-    c_textured_sprite& sprite
+$r e_update[-850](
+    const c_presented_motion& presented
 ) {
-    if (!presented.valid)
-        continue;
-    sprite.visible = presented.visible ? 1u : 0u;
-    sprite.position = presented.body.position;
-    sprite.rotation = presented.body.rotation;
-    sprite.stable_id = e.stable_id();
+    const bool hidden = !presented.valid || !presented.visible;
+    if (hidden) {
+        if (!e.has<c_hidden>()) e.add<c_hidden>();
+    } else if (e.has<c_hidden>()) {
+        e.remove<c_hidden>();
+    }
 };
 
 $r e_update[-800](
     const c_presented_motion& presented,
-    c_colored_quad& quad
+        c_texture& sprite
 ) {
     if (!presented.valid)
         continue;
-    quad.visible = presented.visible ? 1u : 0u;
+    sprite.position = presented.body.position;
+    sprite.rotation = presented.body.rotation;
+};
+
+$r e_update[-800](
+    const c_presented_motion& presented,
+    c_color& quad
+) {
+    if (!presented.valid)
+        continue;
     quad.position = presented.body.position;
     quad.rotation = presented.body.rotation;
 };
@@ -981,11 +979,10 @@ $r e_update[-800](
 $r e_update[-800](
     const c_rigid_body& body,
     exclude c_render_motion_presentation,
-    c_textured_sprite& sprite
+    c_texture& sprite
 ) {
     sprite.position = body.position;
     sprite.rotation = body.rotation;
-    sprite.stable_id = e.stable_id();
 };
 
 $r g_update[900] {
@@ -1022,10 +1019,10 @@ $r e_update[1000](
         visual_position = presented->body.position;
         visual_rotation = presented->body.rotation;
     } else if (const auto* sprite =
-            e.try_get<c_textured_sprite>()) {
+            e.try_get<c_texture>()) {
         visual_position = sprite->position;
         visual_rotation = sprite->rotation;
-    } else if (const auto* quad = e.try_get<c_colored_quad>()) {
+    } else if (const auto* quad = e.try_get<c_color>()) {
         visual_position = quad->position;
         visual_rotation = quad->rotation;
     } else {
@@ -1044,7 +1041,7 @@ $r e_update[1000](
     };
     const auto draw_outline = [&](const vec2& position,
             const vec4& color, float rotation = 0.0f) {
-            draw<c_debug_wireframe>({
+            draw<c_line_quad>({
             position, box_size, rotation, color, 0.0f
         }, 32766);
     };
@@ -1074,7 +1071,7 @@ $r e_update[1000](
         : vec2{0.12f, 0.12f};
     const auto draw_marker = [&](const vec2& position,
             const vec4& color) {
-        draw<c_debug_wireframe>({
+        draw<c_line_quad>({
             position, marker_size, 0.0f, color, 0.0f
         }, 32767);
     };
@@ -1086,7 +1083,7 @@ $r e_update[1000](
         const vec2 end = anchors.points[index];
         const vec2 delta = end - start;
         if (dot(delta, delta) > 0.00000001f)
-            draw<c_debug_line>({start, end, path_color, 0.0f}, 32767);
+            draw<c_line>({start, end, path_color, 0.0f}, 32767);
     }
     for (uint32_t index = 0u; index < anchors.count; ++index)
         draw_marker(anchors.points[index],

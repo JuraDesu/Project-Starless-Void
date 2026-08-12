@@ -10,6 +10,9 @@
 #include <string>
 #include <vector>
 
+inline constexpr int32 UI_PANEL_DRAW_ORDER = 33000;
+inline constexpr int32 UI_ICON_DRAW_ORDER = 33001;
+inline constexpr int32 UI_TEXT_DRAW_ORDER = 33002;
 
 $r c_ui_glyph {
     vec2 position;
@@ -129,25 +132,19 @@ inline ui_measurement measure_ui_stream(
 inline void draw_glyph(
         const GeneratedFontInfo& font,
         const GeneratedFontGlyph& glyph,
-        float x, float baseline_y, float pixels,
-        const ViewState& view, vec4 color) {
-    const float world_per_pixel = view.world_per_pixel();
+        float x, float baseline_y, float pixels, vec4 color) {
     const float left = x + glyph.plane_bounds.x * pixels;
     const float top = baseline_y - glyph.plane_bounds.y * pixels
         - glyph.plane_bounds.w * pixels;
     c_ui_glyph instance{
         {
-            view.camera_x
-                + (left + glyph.plane_bounds.z * pixels * 0.5f)
-                    * world_per_pixel,
-            view.camera_y
-                - (top + glyph.plane_bounds.w * pixels * 0.5f)
-                    * world_per_pixel
+            screen_to_world({
+                left + glyph.plane_bounds.z * pixels * 0.5f,
+                top + glyph.plane_bounds.w * pixels * 0.5f})
         },
-        {
-            glyph.plane_bounds.z * pixels * world_per_pixel,
-            glyph.plane_bounds.w * pixels * world_per_pixel
-        },
+        screen_size_to_world({
+            glyph.plane_bounds.z * pixels,
+            glyph.plane_bounds.w * pixels}),
         {
             glyph.atlas_bounds.x / font.atlas_width,
             glyph.atlas_bounds.y / font.atlas_height,
@@ -156,7 +153,7 @@ inline void draw_glyph(
         },
         color, font.id, 0.0f
     };
-    draw(instance, 1000);
+    draw(instance, UI_TEXT_DRAW_ORDER);
 }
 
 inline void render_ui_stream(
@@ -165,8 +162,8 @@ inline void render_ui_stream(
         float origin_x_pixels,
         float origin_y_pixels,
         float base_pixels = 18.0f) {
-    float x = origin_x_pixels - view.canvas_width * 0.5f;
-    float y = origin_y_pixels - view.canvas_height * 0.5f;
+    float x = origin_x_pixels;
+    float y = origin_y_pixels;
     const float line_start = x;
     float line_height = base_pixels;
     for (const ui_token& token : stream.tokens()) {
@@ -187,8 +184,8 @@ inline void render_ui_stream(
         if (token.type == ui_token::kind::icon) {
             if (token.icon.component && !token.icon.bytes.empty())
                 draw_instances(
-                    token.icon.component,
-                    token.icon.bytes.data(), token.icon.stride, 1u, 950);
+                    token.icon.component, token.icon.bytes.data(),
+                    token.icon.stride, 1u, UI_ICON_DRAW_ORDER);
             x += token.icon.width_pixels;
             continue;
         }
@@ -204,23 +201,13 @@ inline void render_ui_stream(
                 character - GENERATED_FONT_FIRST_CODEPOINT];
             if (glyph.present) {
                     draw_glyph(
-                        font, glyph, x, y + pixels,
-                    pixels, view, color);
+                        font, glyph, x, y + pixels, pixels, color);
             }
             x += glyph.advance * pixels;
         }
         x = max(x, start + token.reserved_width);
         line_height = max(line_height, font.line_height * pixels);
     }
-}
-
-inline vec2 pixel_to_world(
-        const ViewState& view, float x, float y) {
-    const float wpp = view.world_per_pixel();
-    return {
-        view.camera_x + (x - view.canvas_width * 0.5f) * wpp,
-        view.camera_y + (view.canvas_height * 0.5f - y) * wpp
-    };
 }
 
 inline void draw_item_tooltip(
@@ -268,26 +255,23 @@ inline void draw_item_tooltip(
         panel_x, 0.0f, max(0.0f, view.canvas_width - panel_width));
     panel_y = clamp(
         panel_y, 0.0f, max(0.0f, view.canvas_height - panel_height));
-    const vec2 panel_center = pixel_to_world(
-        view, panel_x + panel_width * 0.5f,
-        panel_y + panel_height * 0.5f);
-    draw<c_colored_quad>({
+    const vec2 panel_center = screen_to_world(
+        {panel_x + panel_width * 0.5f,
+         panel_y + panel_height * 0.5f});
+    draw<c_color>({
         panel_center,
-        {panel_width * view.world_per_pixel(),
-         panel_height * view.world_per_pixel()},
+        screen_size_to_world({panel_width, panel_height}),
         0.0f, {0.035f, 0.045f, 0.075f, 0.94f}, 0.0f
-    }, 900);
-    const vec2 icon_center = pixel_to_world(
-        view, panel_x + padding + icon_pixels * 0.5f,
-        panel_y + padding + icon_pixels * 0.5f);
-    c_textured_sprite icon = visual.icon;
+    }, UI_PANEL_DRAW_ORDER);
+    const vec2 icon_center = screen_to_world(
+        {panel_x + padding + icon_pixels * 0.5f,
+         panel_y + padding + icon_pixels * 0.5f});
+    c_texture icon = visual.icon;
     icon.position = icon_center;
-    icon.size = {
-        icon_pixels * view.world_per_pixel(),
-        icon_pixels * view.world_per_pixel()};
+    icon.size = screen_size_to_world({icon_pixels, icon_pixels});
     icon.rotation = 0.0f;
     icon.depth = 0.0f;
-    draw(icon, 950);
+    draw(icon, UI_ICON_DRAW_ORDER);
     render_ui_stream(
         content, view,
         panel_x + padding * 2.0f + icon_pixels,
